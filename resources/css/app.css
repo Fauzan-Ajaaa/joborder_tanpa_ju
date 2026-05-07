@@ -1,0 +1,260 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* GitHub-inspired custom styles */
+@layer base {
+    html {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    
+    body {
+        @apply bg-gray-50 text-gray-900;
+    }
+}
+
+@layer components {
+    /* GitHub-style navigation */
+    .github-nav {
+        @apply bg-white border-b border-gray-300;
+    }
+    
+    .github-nav-link {
+        @apply px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200;
+    }
+    
+    .github-nav-link.active {
+        @apply text-gray-900 bg-gray-100;
+    }
+    
+    /* GitHub-style dropdown */
+    .github-dropdown {
+        @apply absolute z-50 mt-1 w-48 rounded-md shadow-lg bg-white border border-gray-200;
+    }
+    
+    .github-dropdown-item {
+        @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900;
+    }
+    
+    .github-dropdown-item.active {
+        @apply bg-gray-100 text-gray-900 font-medium;
+    }
+    
+    /* GitHub-style buttons */
+    .github-btn {
+        @apply px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors duration-200;
+    }
+    
+    .github-btn-primary {
+        @apply bg-blue-600 text-white border-blue-600 hover:bg-blue-700 focus:ring-blue-500;
+    }
+    
+    .github-btn-danger {
+        @apply bg-red-600 text-white border-red-600 hover:bg-red-700 focus:ring-red-500;
+    }
+    
+    /* GitHub-style cards */
+    .github-card {
+        @apply bg-white border border-gray-300 rounded-lg shadow-sm;
+    }
+    
+    .github-card-header {
+        @apply px-6 py-4 border-b border-gray-300;
+    }
+    
+    .github-card-body {
+        @apply px-6 py-4;
+    }
+    
+    /* GitHub-style form inputs */
+    .github-input {
+        @apply block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+    }
+    
+    .github-label {
+        @apply block text-sm font-medium text-gray-700 mb-1;
+    }
+    
+    /* GitHub-style tables */
+    .github-table {
+        @apply min-w-full divide-y divide-gray-300;
+    }
+    
+    .github-table th {
+        @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50;
+    }
+    
+    .github-table td {
+        @apply px-6 py-4 text-sm text-gray-900 whitespace-nowrap;
+    }
+    
+    .github-table tr:hover {
+        @apply bg-gray-50;
+    }
+    
+    /* GitHub-style badges */
+    .github-badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    }
+    
+    .github-badge-green {
+        @apply bg-green-100 text-green-800;
+    }
+    
+    .github-badge-red {
+        @apply bg-red-100 text-red-800;
+    }
+    
+    .github-badge-yellow {
+        @apply bg-yellow-100 text-yellow-800;
+    }
+    
+    .github-badge-blue {
+        @apply bg-blue-100 text-blue-800;
+    }
+    
+    .github-badge-gray {
+        @apply bg-gray-100 text-gray-800;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* =================================
+   NAVBAR UTAMA
+   ================================= */
+
+.nav-with-batik {
+    position: relative !important;
+    z-index: 100 !important;
+    background-image: url('/images/backgrounds/auth-bg.png') !important;
+    background-size: auto 150px !important;
+    background-position: center !important;
+    background-repeat: repeat !important;
+    min-height: 64px;
+    border-bottom: 2px solid #d4b483 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.nav-with-batik::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(237, 213, 185, 0.75), rgba(220, 185, 145, 0.7), rgba(237, 213, 185, 0.75));
+    z-index: -1;
+}
+
+.nav-with-batik::after {
+    display: none;
+}
+
+.bg-dashboard-theme {
+    position: relative !important;
+    background-image: url('/images/backgrounds/auth-bg.png') !important;
+    background-size: auto 150px !important;
+    background-position: center !important;
+    background-repeat: repeat !important;
+    border-bottom: 2px solid #d4b483 !important;
+}
+
+.bg-dashboard-theme::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(237, 213, 185, 0.8), rgba(220, 185, 145, 0.75), rgba(237, 213, 185, 0.8));
+    z-index: 0;
+}
+
+.bg-dashboard-theme > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* =================================
+   WRAPPER ISI NAV
+   ================================= */
+
+.nav-content-wrapper {
+    position: relative !important;
+    z-index: 10 !important;
+    background-color: transparent !important;
+}
+
+/* =================================
+   ITEM NAV
+   ================================= */
+
+.github-nav-link,
+.github-btn {
+    position: relative !important;
+    z-index: 20 !important;
+}
+
+/* =================================
+   DROPDOWN (PALING ATAS)
+   ================================= */
+
+.github-dropdown {
+    z-index: 1000 !important;
+}
+
+/* Batik pattern background */
+.batik-pattern {
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    position: relative;
+}
+
+.batik-pattern::before {
+    display: none;
+}
+
+.batik-sidebar-left,
+.batik-sidebar-right {
+    display: none;
+}
+
+/* Animations */
+@keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+    animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+    animation-delay: 4s;
+}
+
+@keyframes shimmer {
+    100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+    animation: shimmer 1.5s infinite;
+}

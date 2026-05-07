@@ -1,0 +1,261 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@config '../../../../tailwind.config.js';
+
+/* Custom Manufacturing Theme */
+:root {
+    --manufacturing-primary: #2563eb;
+    --manufacturing-secondary: #64748b;
+    --manufacturing-accent: #f59e0b;
+}
+
+/* Enhanced Card Shadows */
+.fi-section {
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+/* Custom Sidebar Styling */
+.fi-sidebar {
+    @apply bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800;
+}
+
+/* Navigation Items */
+.fi-sidebar-item-button {
+    @apply transition-all duration-200 hover:translate-x-1;
+}
+
+.fi-sidebar-item-button:hover {
+    @apply bg-blue-50 dark:bg-blue-900/20;
+}
+
+/* Active Navigation */
+.fi-sidebar-item-button[aria-current="page"] {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md;
+}
+
+/* Table Enhancements */
+.fi-ta-table {
+    @apply rounded-lg shadow-sm;
+}
+
+.fi-ta-content {
+    @apply overflow-visible;
+}
+
+.fi-ta {
+    @apply overflow-visible;
+}
+
+/* Fix untuk dropdown dan bulk actions yang terpotong */
+.fi-ta-ctn {
+    overflow: visible !important;
+    padding-bottom: 4rem;
+}
+
+.fi-ta-header-ctn {
+    overflow: visible !important;
+}
+
+.fi-section-content {
+    overflow: visible !important;
+}
+
+/* Hapus override luas pada .fi-section agar tidak mengganggu layout lain */
+
+/* Pastikan dropdown menu tidak terpotong */
+.fi-dropdown {
+    overflow: visible !important;
+}
+
+.fi-dropdown-panel {
+    z-index: 60 !important;
+}
+
+/* Beri jarak ekstra setelah section yang memuat tabel agar sticky bar tidak menutup konten di bawahnya */
+.fi-section:has(.fi-ta) {
+    margin-bottom: 1.25rem;
+}
+
+/* Override overflow utilities di dalam section agar konten tidak terpotong */
+.fi-ta .overflow-hidden {
+    overflow: visible !important;
+}
+
+/* Wrapper rounded di dalam table */
+.fi-ta .rounded-xl,
+.fi-ta .rounded-lg,
+.fi-ta .rounded-md {
+    overflow: visible !important;
+}
+
+/* Hilangkan paint containment pada table wrapper saja jika ada */
+.fi-ta {
+    contain: unset !important;
+}
+
+/* Pastikan elemen sticky di dalam tabel berada di atas konten sekitar */
+.fi-ta .sticky {
+    z-index: 40;
+}
+
+.fi-ta-row:hover {
+    @apply bg-blue-50/50 dark:bg-blue-900/10 transition-colors duration-150;
+}
+
+/* Form Inputs */
+.fi-input {
+    @apply transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+/* Buttons */
+.fi-btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200;
+}
+
+.fi-btn-success {
+    @apply bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800;
+}
+
+.fi-btn-danger {
+    @apply bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800;
+}
+
+/* Stats Cards */
+.fi-wi-stats-overview-stat {
+    @apply transition-all duration-200 hover:scale-105 hover:shadow-lg;
+}
+
+/* Header Branding */
+.fi-topbar {
+    @apply bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 dark:bg-gray-600 rounded-full hover:bg-gray-500 dark:hover:bg-gray-500;
+}
+
+/* Badge Enhancements */
+.fi-badge {
+    @apply shadow-sm font-semibold;
+}
+
+/* Modal Enhancements */
+.fi-modal {
+    @apply backdrop-blur-sm;
+}
+
+.fi-modal-content {
+    @apply shadow-2xl rounded-xl;
+}
+
+/* Notification Enhancements */
+.fi-notification {
+    @apply shadow-lg rounded-lg border-l-4;
+}
+
+/* Dashboard Grid */
+.fi-wi-stats-overview {
+    @apply gap-4;
+}
+
+/* Custom Manufacturing Icons */
+.manufacturing-icon {
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md;
+}
+
+/* Loading States */
+.fi-loading {
+    @apply animate-pulse;
+}
+
+/* Responsive Table */
+@media (max-width: 768px) {
+    .fi-ta-table {
+        @apply text-sm;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .fi-sidebar,
+    .fi-topbar,
+    .fi-footer {
+        @apply hidden;
+    }
+}
+
+/* Custom Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Focus Visible for Accessibility */
+*:focus-visible {
+    @apply outline-2 outline-offset-2 outline-blue-500;
+}
+
+/* Custom Grid Layouts */
+.manufacturing-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+/* Status Indicators */
+.status-active {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+.status-pending {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+}
+
+.status-inactive {
+    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+}
+
+/* Enhanced Dark Mode */
+.dark {
+    color-scheme: dark;
+}
+
+.dark .fi-section {
+    @apply bg-gray-800/50 backdrop-blur-sm;
+}
+
+/* Custom Gradient Backgrounds */
+.gradient-manufacturing {
+    @apply bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800;
+}
+
+.gradient-success {
+    @apply bg-gradient-to-br from-green-600 via-green-700 to-green-800;
+}
+
+.gradient-warning {
+    @apply bg-gradient-to-br from-orange-600 via-orange-700 to-orange-800;
+}
+
+/* Widget Specific Styles */
+.fi-wi-widget {
+    @apply animate-slide-in;
+}
