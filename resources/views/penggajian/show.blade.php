@@ -17,7 +17,7 @@
                 @if(!$item->journal_status)
                     <form action="{{ route('penggajian.recognize', $item->id_gaji) }}" method="POST" class="inline">
                         @csrf
-                        <button type="submit" onclick="return confirm('Buat jurnal pengakuan gaji?\nDr Beban Gaji / Cr Utang Gaji')"
+                        <button type="submit"
                             class="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
                             🔵 Pengakuan Gaji
                         </button>
@@ -28,7 +28,7 @@
                     {{-- 🔴 Tombol Distribusi Gaji --}}
                     <form action="{{ route('penggajian.distribute', $item->id_gaji) }}" method="POST" class="inline">
                         @csrf
-                        <button type="submit" onclick="return confirm('Distribusi gaji ke akun biaya?\nDr BDP-BTKL/BOP-BTKTL/Beban Adm / Cr Beban Gaji')"
+                        <button type="submit"
                             class="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm">
                             🔴 Distribusi Gaji
                         </button>
@@ -46,7 +46,7 @@
                 @elseif($item->journal_status === 'distributed')
                     <form action="{{ route('penggajian.pay', $item->id_gaji) }}" method="POST" class="inline">
                         @csrf
-                        <button type="submit" onclick="return confirm('Proses pembayaran gaji?\nDr Utang Gaji / Cr Kas')"
+                        <button type="submit"
                             class="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
                             🟢 Bayar Sekarang
                         </button>
