@@ -1476,4 +1476,48 @@ class JournalService
             return $journal;
         });
     }
+
+    /**
+     * Generate jurnal dari pembatalan produk cacat
+     */
+    public function createJournalFromProductCancellation(\App\Models\ProductCancellation $cancellation): \App\Models\JournalEntry
+    {
+        return DB::transaction(function () use ($cancellation) {
+            $cancellation->loadMissing(['jobOrder', 'product']);
+            
+            $jobOrder = $cancellation->jobOrder;
+            $product = $cancellation->product;
+            
+            $totalCost = $cancellation->total_cost;
+            
+            $journal = \App\Models\JournalEntry::create([
+                'journal_number' => \App\Models\JournalEntry::generateJournalNumber('JU'),
+                'transaction_date' => $cancellation->cancelled_at,
+                'description' => "Produk Cacat - {$product->name} (Job Order: {$jobOrder->kode_job})",
+                'source_type' => 'product_cancellation',
+                'source_id' => $cancellation->id,
+                'status' => 'posted',
+                'total_debit' => $totalCost,
+                'total_credit' => $totalCost,
+            ]);
+
+            // DEBIT: Kerugian Produk Cacat (akun beban)
+            $this->addJournalItem($journal, $totalCost, 0, '5999', 'Kerugian Produk Cacat');
+
+            // CREDIT: Barang Dalam Proses (BDP) - kembalikan biaya yang sudah dikeluarkan
+            if ($cancellation->bbb_cost > 0) {
+                $this->addJournalItem($journal, 0, $cancellation->bbb_cost, '110601', 'BDP - Bahan Baku');
+            }
+            
+            if ($cancellation->btkl_cost > 0) {
+                $this->addJournalItem($journal, 0, $cancellation->btkl_cost, '110602', 'BDP - BTKL');
+            }
+            
+            if ($cancellation->bop_cost > 0) {
+                $this->addJournalItem($journal, 0, $cancellation->bop_cost, '110603', 'BDP - BOP');
+            }
+
+            return $journal;
+        });
+    }
 }

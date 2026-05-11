@@ -137,6 +137,23 @@ class JobOrderController extends Controller
                     ]);
                 }
 
+                // Kurangi stok produk jadi saat membuat job order
+                $productForUpdate = Product::withoutGlobalScopes()->lockForUpdate()->findOrFail($product->id);
+                $oldStock = (float)$productForUpdate->stock;
+                $quantityToReduce = (float)$quantity;
+                
+                \Log::info('BEFORE UPDATE - Product: ' . $productForUpdate->name . ', Old Stock: ' . $oldStock . ', Qty: ' . $quantityToReduce);
+                
+                $productForUpdate->stock = $oldStock - $quantityToReduce;
+                $productForUpdate->save();
+                $productForUpdate->refresh();
+                
+                \Log::info('AFTER UPDATE - Product: ' . $productForUpdate->name . ', Stock in DB: ' . $productForUpdate->stock);
+                \Log::info('Job Order created and product stock reduced: Job ' . $job->kode_job . 
+                          ', Product: ' . $productForUpdate->name . 
+                          ', Qty: ' . $quantityToReduce . 
+                          ', New Stock: ' . $productForUpdate->stock);
+
                 // Process materials untuk setiap produk (dari BOM yang sudah di-load)
                 if ($bom) {
                     foreach ($bom->items as $bomItem) {

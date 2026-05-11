@@ -94,6 +94,7 @@ class CorrectCoaSeeder extends Seeder
             ['code' => '57', 'name' => 'Beban Gaji dan Upah ', 'type' => 'expense', 'group' => 'Beban', 'parent' => null, 'is_header' => true],
              ['code' => '58', 'name' => 'Diskon Pembelian', 'type' => 'expense', 'group' => 'Beban', 'parent' => null, 'is_header' => true],
               ['code' => '59', 'name' => 'Harga Pokok Penjualan', 'type' => 'expense', 'group' => 'Beban', 'parent' => null, 'is_header' => true],
+              ['code' => '5999', 'name' => 'Kerugian Produk Cacat', 'type' => 'expense', 'group' => 'Beban', 'parent' => null, 'is_header' => false],
         ];
 
         foreach ($accounts as $account) {
