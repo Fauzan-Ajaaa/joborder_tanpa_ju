@@ -238,8 +238,8 @@
                         <td class="text-right">Rp {{ number_format($purchase->average_unit_price, 0, ',', '.') }}</td>
                         <td class="text-right"></td>
                         <td class="text-right">Rp {{ number_format($purchase->discount_amount, 0, ',', '.') }}</td>
-                        <td class="text-right">Rp {{ number_format($purchase->shipping_cost, 0, ',', '.') }}</td>
-                        <td class="text-right">Rp {{ number_format($purchase->tax_amount, 0, ',', '.') }}</td>
+                        <td class="text-right">Rp {{ number_format($purchase->fob_cost, 0, ',', '.') }}</td>
+                        <td class="text-right">Rp {{ number_format($purchase->ppn_amount, 0, ',', '.') }}</td>
                         <td class="text-right" style="font-weight: bold;">Rp {{ number_format($purchase->total_amount, 0, ',', '.') }}</td>
                         <td class="text-center">
                             <span class="{{ $purchase->payment_status === 'paid' ? 'status-lunas' : 'status-belum' }}">

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SIMAJOC</title>
+    <title>Manufactur Application</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -207,7 +207,7 @@
     <div class="main">
         <div class="card">
             <div class="badge">✦ Selamat Datang ✦</div>
-            <h1>SIMAJOC</h1>
+            <h1>Manufactur Application</h1>
             <p class="subtitle">Sistem Informasi Manufaktur Job Order Costing</p>
             <p class="dev-by-card">
                 Developed by:<br>
@@ -217,7 +217,7 @@
             </p>
             <div class="divider"></div>
             <p>
-                SIMAJOC hadir sebagai solusi digital untuk membantu pelaku usaha dalam mengelola proses produksi secara terstruktur dan efisien.
+                Manufactur Application hadir sebagai solusi digital untuk membantu pelaku usaha dalam mengelola proses produksi secara terstruktur dan efisien.
             </p>
             <a href="{{ route('login') }}" class="btn">Login →</a>
         </div>
