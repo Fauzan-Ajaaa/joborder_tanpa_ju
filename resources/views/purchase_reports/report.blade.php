@@ -190,10 +190,10 @@
                                     Rp. {{ number_format($purchase->discount_amount, 0, ',', '.') }}
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    Rp. {{ number_format($purchase->shipping_cost, 0, ',', '.') }}
+                                    Rp. {{ number_format($purchase->fob_cost, 0, ',', '.') }}
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    Rp. {{ number_format($purchase->tax_amount, 0, ',', '.') }}
+                                    Rp. {{ number_format($purchase->ppn_amount, 0, ',', '.') }}
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
                                     Rp. {{ number_format($purchase->total_amount, 0, ',', '.') }}
