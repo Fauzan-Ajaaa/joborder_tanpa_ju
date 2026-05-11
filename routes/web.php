@@ -248,6 +248,11 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('job-orders/{job_order}/delete-sales', [JobOrderController::class, 'deleteAllSales'])
         ->name('job-orders.delete-sales');
 
+    // Product Cancellations (Pembatalan Produk Cacat)
+    Route::resource('product-cancellations', \App\Http\Controllers\ProductCancellationController::class);
+    Route::get('job-orders/{jobOrder}/products', [\App\Http\Controllers\ProductCancellationController::class, 'getJobOrderProducts'])
+        ->name('job-orders.products');
+
     // Sales Transactions
     Route::resource('sales', SalesTransactionController::class);
     Route::get('sales/{sale}/receipt', [SalesTransactionController::class, 'receipt'])

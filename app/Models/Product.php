@@ -195,6 +195,14 @@ class Product extends Model
     }
 
     /**
+     * Relationship ke Bill of Material untuk produk ini
+     */
+    public function billOfMaterials()
+    {
+        return $this->hasMany(BillOfMaterial::class, 'product_id');
+    }
+
+    /**
      * Menghitung jumlah produk yang bisa dibuat berdasarkan stok bahan baku
      */
     public function getAvailableStockAttribute(): int
