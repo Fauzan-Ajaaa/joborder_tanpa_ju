@@ -51,6 +51,7 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pelanggan</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Items</th>
             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
+            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Metode Layanan</th>
             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Metode Pembayaran</th>
             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status Approval</th>
             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
@@ -84,6 +85,22 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900 dark:text-white">
               Rp {{ number_format($sale->total_amount, 0, ',', '.') }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-center">
+              @php($ft = $sale->fob_type ?? 'shipping_point')
+              @if($ft === 'destination')
+                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                  Diantar
+                </span>
+              @elseif($ft === 'dine_in')
+                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                  Dine In
+                </span>
+              @else
+                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  Take Away
+                </span>
+              @endif
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-center">
               <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -139,7 +156,7 @@
           </tr>
           @empty
           <tr>
-            <td colspan="8" class="px-6 py-12 text-center">
+            <td colspan="9" class="px-6 py-12 text-center">
               <div class="flex flex-col items-center">
                 <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />

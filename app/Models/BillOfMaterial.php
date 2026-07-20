@@ -18,6 +18,7 @@ class BillOfMaterial extends Model
         'btkl_rate_per_hour',
         'bop_rate_per_hour',
         'selling_price',
+        'profit_margin_percentage',
         'is_active',
         'notes',
         'total_cost',
@@ -28,6 +29,7 @@ class BillOfMaterial extends Model
         'btkl_rate_per_hour' => 'decimal:2',
         'bop_rate_per_hour' => 'decimal:2',
         'selling_price' => 'decimal:2',
+        'profit_margin_percentage' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
@@ -60,6 +62,25 @@ class BillOfMaterial extends Model
         }
         // Fallback ke selling_price di BOM jika produk belum di-load atau harganya 0
         return (float) ($this->selling_price ?? 0);
+    }
+
+    public function getTotalMaterialCost(): float
+    {
+        return $this->items->sum(fn($i) => (float)$i->quantity * (float)$i->unit_cost);
+    }
+
+    public function getTotalLaborCost(): float
+    {
+        $durasiJam = ($this->processes->first()?->duration_minutes ?? 0) / 60;
+        return round((float)$this->btkl_rate_per_hour * $durasiJam, 2);
+    }
+
+    public function getTotalOverheadCost(): float
+    {
+        $durasiJam = ($this->processes->first()?->duration_minutes ?? 0) / 60;
+        $totalBopPor = round((float)$this->bop_rate_per_hour * $durasiJam, 2);
+        $totalAux = $this->auxiliaries->sum(fn($a) => (float)($a->quantity ?? 0) * (float)($a->unit_cost ?? 0));
+        return $totalBopPor + $totalAux;
     }
 
     public function calculateTotalMaterialCost()

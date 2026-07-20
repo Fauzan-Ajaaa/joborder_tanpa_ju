@@ -22,6 +22,8 @@ class SalesTransaction extends Model
         'customer_name',
         'employee',
         'customer_address',
+        'customer_phone',
+        'delivery_notes',
         'notes',
         'subtotal',
         'discount_rate',
@@ -34,6 +36,7 @@ class SalesTransaction extends Model
         'total_amount',
         'status',
         'payment_status',
+        'payment_method',
         'payment_proof',
         'approval_status',
         'approval_notes',
@@ -82,7 +85,7 @@ class SalesTransaction extends Model
             }
             
             // Set default approval status untuk transaksi yang memerlukan approval
-            if (empty($trx->approval_status) && in_array($trx->payment_status, ['transfer', 'ewallet'])) {
+            if (empty($trx->approval_status) && in_array($trx->payment_method, ['transfer', 'ewallet'])) {
                 $trx->approval_status = 'pending';
             }
         });
@@ -136,10 +139,12 @@ class SalesTransaction extends Model
 
     /**
      * Check if payment method requires proof upload
+     * Only for delivery (destination) with transfer/ewallet
      */
     public function requiresPaymentProof(): bool
     {
-        return in_array($this->payment_status, ['transfer', 'ewallet']);
+        return $this->fob_type === 'destination' 
+            && in_array($this->payment_method, ['transfer', 'ewallet']);
     }
 
     /**

@@ -49,13 +49,6 @@
 
             {{-- Tabel --}}
             <div class="bg-white rounded-lg shadow-sm p-6">
-                @php
-                    $sections = [
-                        ['label' => 'Pendapatan', 'color' => 'bg-blue-50',  'rows' => $revenues, 'total' => $totalRevenue],
-                        ['label' => 'Biaya',      'color' => 'bg-red-50',   'rows' => $expenses, 'total' => $totalExpense],
-                    ];
-                @endphp
-
                 <table class="w-full text-sm border border-gray-100">
                     <thead class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
                         <tr>
@@ -65,36 +58,96 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @foreach($sections as $section)
-                            <tr class="{{ $section['color'] }} font-semibold text-gray-700">
-                                <td colspan="3" class="px-4 py-3">{{ $section['label'] }}</td>
-                            </tr>
+                        {{-- Pendapatan --}}
+                        <tr class="bg-blue-50 font-semibold text-gray-700">
+                            <td colspan="3" class="px-4 py-3">Pendapatan</td>
+                        </tr>
 
-                            @forelse($section['rows'] as $row)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-2">{{ $row['code'] }}</td>
-                                    <td class="px-4 py-2">{{ $row['name'] }}</td>
-                                    <td class="px-4 py-2 text-right">
-                                        {{ number_format($row['amount'], 0, ',', '.') }}
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="3" class="px-4 py-3 text-center text-gray-400">Belum ada data</td>
-                                </tr>
-                            @endforelse
-
-                            <tr class="font-semibold text-gray-800 border-t">
-                                <td colspan="2" class="px-4 py-2 text-right">Total {{ $section['label'] }}</td>
+                        @forelse($revenues as $row)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2">{{ $row['code'] }}</td>
+                                <td class="px-4 py-2">{{ $row['name'] }}</td>
                                 <td class="px-4 py-2 text-right">
-                                    {{ number_format($section['total'], 0, ',', '.') }}
+                                    {{ number_format($row['amount'], 0, ',', '.') }}
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="3" class="px-4 py-3 text-center text-gray-400">Belum ada data pendapatan</td>
+                            </tr>
+                        @endforelse
 
-                        <tr class="bg-emerald-50 font-semibold text-gray-800">
-                            <td colspan="2" class="px-4 py-3 text-right">Laba/Rugi Bersih</td>
-                            <td class="px-4 py-3 text-right">
+                        <tr class="font-semibold text-gray-800 border-t">
+                            <td colspan="2" class="px-4 py-2 text-right">Total Pendapatan</td>
+                            <td class="px-4 py-2 text-right">
+                                {{ number_format($totalRevenue, 0, ',', '.') }}
+                            </td>
+                        </tr>
+
+                        {{-- HPP (Harga Pokok Penjualan) --}}
+                        <tr class="bg-orange-50 font-semibold text-gray-700">
+                            <td colspan="3" class="px-4 py-3">Harga Pokok Penjualan (HPP)</td>
+                        </tr>
+
+                        @forelse($cogs as $row)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2">{{ $row['code'] }}</td>
+                                <td class="px-4 py-2">{{ $row['name'] }}</td>
+                                <td class="px-4 py-2 text-right">
+                                    {{ number_format($row['amount'], 0, ',', '.') }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="px-4 py-3 text-center text-gray-400">Belum ada data HPP</td>
+                            </tr>
+                        @endforelse
+
+                        <tr class="font-semibold text-gray-800 border-t">
+                            <td colspan="2" class="px-4 py-2 text-right">Total HPP</td>
+                            <td class="px-4 py-2 text-right text-red-600">
+                                ({{ number_format($totalCOGS, 0, ',', '.') }})
+                            </td>
+                        </tr>
+
+                        {{-- LABA KOTOR --}}
+                        <tr class="bg-green-100 font-bold text-gray-900 border-t-2 border-gray-300">
+                            <td colspan="2" class="px-4 py-3 text-right">LABA KOTOR</td>
+                            <td class="px-4 py-3 text-right text-green-700">
+                                {{ number_format($grossProfit, 0, ',', '.') }}
+                            </td>
+                        </tr>
+
+                        {{-- Beban Operasional --}}
+                        <tr class="bg-red-50 font-semibold text-gray-700">
+                            <td colspan="3" class="px-4 py-3">Beban Operasional</td>
+                        </tr>
+
+                        @forelse($expenses as $row)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2">{{ $row['code'] }}</td>
+                                <td class="px-4 py-2">{{ $row['name'] }}</td>
+                                <td class="px-4 py-2 text-right">
+                                    {{ number_format($row['amount'], 0, ',', '.') }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="px-4 py-3 text-center text-gray-400">Belum ada data beban</td>
+                            </tr>
+                        @endforelse
+
+                        <tr class="font-semibold text-gray-800 border-t">
+                            <td colspan="2" class="px-4 py-2 text-right">Total Beban Operasional</td>
+                            <td class="px-4 py-2 text-right text-red-600">
+                                ({{ number_format($totalExpense, 0, ',', '.') }})
+                            </td>
+                        </tr>
+
+                        {{-- LABA BERSIH --}}
+                        <tr class="bg-emerald-100 font-bold text-gray-900 border-t-2 border-gray-400">
+                            <td colspan="2" class="px-4 py-3 text-right">LABA BERSIH</td>
+                            <td class="px-4 py-3 text-right {{ $netIncome >= 0 ? 'text-green-700' : 'text-red-700' }}">
                                 {{ number_format($netIncome, 0, ',', '.') }}
                             </td>
                         </tr>

@@ -6,12 +6,6 @@
 <div class="space-y-6">
     <div class="flex justify-between items-center">
         <h1 class="text-3xl font-bold text-gray-900">Pengurangan Produk</h1>
-        <a href="{{ route('product-cancellations.create') }}" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Buat Pengurangan
-        </a>
     </div>
 
     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -38,7 +32,9 @@
                                 </a>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <div>{{ $cancellation->jobOrder->kode_job }}</div>
+                                <a href="{{ route('job-orders.show', $cancellation->jobOrder) }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                    {{ $cancellation->jobOrder->kode_job }}
+                                </a>
                                 <div class="text-xs text-gray-500">{{ $cancellation->jobOrder->customer_name ?? $cancellation->jobOrder->customer?->name ?? '-' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $cancellation->product->name }}</td>

@@ -243,15 +243,23 @@ class AuxiliaryMaterial extends Model
                 if (!$bom)
                     return 0;
                 $total = 0;
+                // Ambil quantity yang dibatalkan
+                $cancelledQty = \App\Models\ProductCancellation::where('job_order_id', $detail->job_order_id)
+                    ->where('product_id', $detail->product_id)
+                    ->where('status', '!=', 'rejected')
+                    ->sum('quantity_cancelled') ?? 0;
+                
+                $effectiveQty = (float)($detail->quantity ?? 0) + (float)$cancelledQty;
+
                 foreach ($bom->auxiliaries as $bomAux) {
                     if ($bomAux->auxiliary_material_id !== $this->id)
                         continue;
                     $qtyPerUnit = (float) ($bomAux->quantity ?? 0);
                     $recipeUnit = $bomAux->unit ?: $this->unit;
                     if ($recipeUnit !== $this->unit && $purchaseConvFactor > 0) {
-                        $total += ($qtyPerUnit / $purchaseConvFactor) * (float) ($detail->quantity ?? 0);
+                        $total += ($qtyPerUnit / $purchaseConvFactor) * $effectiveQty;
                     } else {
-                        $total += $qtyPerUnit * (float) ($detail->quantity ?? 0);
+                        $total += $qtyPerUnit * $effectiveQty;
                     }
                 }
                 return $total;
@@ -314,10 +322,18 @@ class AuxiliaryMaterial extends Model
                     continue;
                 $qtyPerUnit = (float) ($bomAux->quantity ?? 0);
                 $recipeUnit = $bomAux->unit ?: $this->unit;
+                // Ambil quantity yang dibatalkan
+                $cancelledQty = \App\Models\ProductCancellation::where('job_order_id', $detail->job_order_id)
+                    ->where('product_id', $detail->product_id)
+                    ->where('status', '!=', 'rejected')
+                    ->sum('quantity_cancelled') ?? 0;
+                
+                $effectiveQty = (float)($detail->quantity ?? 0) - (float)$cancelledQty;
+
                 if ($recipeUnit !== $this->unit && $purchaseConvFactor > 0) {
-                    $remaining = ($qtyPerUnit / $purchaseConvFactor) * (float) ($detail->quantity ?? 0);
+                    $remaining = ($qtyPerUnit / $purchaseConvFactor) * $effectiveQty;
                 } else {
-                    $remaining = $qtyPerUnit * (float) ($detail->quantity ?? 0);
+                    $remaining = $qtyPerUnit * $effectiveQty;
                 }
 
                 while ($remaining > 0 && !empty($batches)) {
@@ -676,10 +692,18 @@ class AuxiliaryMaterial extends Model
             if (!$bom)
                 continue;
             foreach ($bom->auxiliaries as $bomAux) {
+                // Ambil quantity yang dibatalkan
+                $cancelledQty = \App\Models\ProductCancellation::where('job_order_id', $detail->job_order_id)
+                    ->where('product_id', $detail->product_id)
+                    ->where('status', '!=', 'rejected')
+                    ->sum('quantity_cancelled') ?? 0;
+                
+                $effectiveQty = (float)($detail->quantity ?? 0) - (float)$cancelledQty;
+
                 if ($bomAux->auxiliary_material_id !== $this->id)
                     continue;
                 $qtyPerUnit = (float) ($bomAux->quantity ?? 0);
-                $qtyTotal = $qtyPerUnit * (float) ($detail->quantity ?? 0);
+                $qtyTotal = $qtyPerUnit * $effectiveQty;
                 if ($qtyTotal > 0) {
                     $usageEntries->push((object) [
                         'created_at' => $detail->jobOrder->mulai_job_at,

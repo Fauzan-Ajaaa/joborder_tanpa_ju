@@ -36,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         Payroll::observe(PayrollObserver::class);
         BiayaOverhead::observe(BiayaOverheadObserver::class);
         Penggajian::observe(PenggajianObserver::class);
+        // ProductCancellation::observe(ProductCancellationObserver::class); // Dimatikan karena stok di-handle langsung di Controller
 
         // Share company ke semua view catalog
         \Illuminate\Support\Facades\View::composer(['catalog.*', 'layouts.catalog'], function ($view) {
@@ -53,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
             'overhead' => \App\Models\BiayaOverhead::class,
             'penggajian' => \App\Models\Penggajian::class,
             'penggajian_payment' => \App\Models\Penggajian::class,
+            'product_cancellation' => \App\Models\ProductCancellation::class,
         ]);
     }
 }

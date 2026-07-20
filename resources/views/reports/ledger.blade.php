@@ -174,9 +174,9 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                        {{-- Tampilkan saldo dengan format yang benar --}}
+                                        {{-- Tampilkan saldo awal sesuai normal balance, selalu positif untuk akun kredit --}}
                                         @if($saldoAwal != 0)
-                                            {{ number_format($saldoAwal, 0, ',', '.') }}
+                                            {{ number_format(abs($saldoAwal), 0, ',', '.') }}
                                         @else
                                             0
                                         @endif
@@ -190,7 +190,7 @@
                                             {{ $item->journalEntry->transaction_date->format('d/m/Y') }}
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-500">
-                                            {{ $item->description }}
+                                            {{ $item->journalEntry->description ?? '-' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {{ $item->journalEntry->journal_number }}
@@ -202,7 +202,8 @@
                                             {{ $item->credit > 0 ? number_format($item->credit, 0, ',', '.') : '-' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                                            {{ number_format($item->running_balance, 0, ',', '.') }}
+                                            {{-- Tampilkan saldo selalu positif untuk semua jenis akun --}}
+                                            {{ number_format(abs($item->running_balance), 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 @endforeach

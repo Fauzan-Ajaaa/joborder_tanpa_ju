@@ -30,8 +30,9 @@ function addProduct() {
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Qty Order</label>
-                <input type="number" step="0.01" min="0.01" name="products[${productIndex}][quantity]" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" value="1" required>
+                <input type="number" step="0.01" min="0" name="products[${productIndex}][quantity]" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 quantity-input" value="0" oninput="validateQuantity(this)" required>
                 <p class="mt-1 text-xs text-gray-500 stock-info">Stok tersedia: -</p>
+                <p class="mt-1 text-xs text-red-600 hidden error-message"></p>
             </div>
         </div>
     `;
@@ -53,15 +54,66 @@ function updateProductStock(selectEl) {
     const info = row.querySelector('.stock-info');
 
     if (qtyInput) {
-        // Tidak set max lagi, biarkan user input quantity berapapun
+        // Set data-stock attribute untuk validasi
+        qtyInput.setAttribute('data-max-stock', stock);
+        // Set quantity ke 0 jika masih default
         if (parseFloat(qtyInput.value || 0) === 0) {
-            qtyInput.value = 1;
+            qtyInput.value = 0;
         }
+        // Jangan validasi otomatis saat produk dipilih, biarkan user input dulu
+        // validateQuantity(qtyInput);
     }
 
     if (info) {
         info.textContent = 'Stok tersedia: ' + stock;
     }
+}
+
+function validateQuantity(input) {
+    const row = input.closest('.product-row');
+    if (!row) return true;
+    
+    const maxStock = parseFloat(input.getAttribute('data-max-stock')) || 0;
+    const quantity = parseFloat(input.value) || 0;
+    const errorMsg = row.querySelector('.error-message');
+    
+    // Hanya validasi jika quantity > 0 dan melebihi stok
+    if (quantity > 0 && quantity > maxStock) {
+        // Show error
+        input.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+        input.classList.remove('border-gray-300', 'focus:border-blue-500', 'focus:ring-blue-500');
+        if (errorMsg) {
+            errorMsg.textContent = `Quantity melebihi stok tersedia! Maksimal: ${maxStock}`;
+            errorMsg.classList.remove('hidden');
+        }
+        return false;
+    } else {
+        // Clear error
+        input.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+        input.classList.add('border-gray-300', 'focus:border-blue-500', 'focus:ring-blue-500');
+        if (errorMsg) {
+            errorMsg.classList.add('hidden');
+        }
+        return true;
+    }
+}
+
+function validateForm() {
+    let isValid = true;
+    const quantityInputs = document.querySelectorAll('.quantity-input');
+    
+    quantityInputs.forEach(input => {
+        if (!validateQuantity(input)) {
+            isValid = false;
+        }
+    });
+    
+    if (!isValid) {
+        alert('Tidak dapat membuat pesanan! Quantity yang di input melebihi stok tersedia. Silakan periksa kembali.');
+        return false;
+    }
+    
+    return true;
 }
 
 // Initialize dengan satu produk
@@ -158,7 +210,7 @@ function onScannerBlur() {
     </div>
 
     <div class="bg-white shadow sm:rounded-lg p-6">
-        <form action="{{ route('job-orders.store') }}" method="POST" class="space-y-6">
+        <form action="{{ route('job-orders.store') }}" method="POST" class="space-y-6" onsubmit="return validateForm()">
             @csrf
 
             <!-- Products Section -->

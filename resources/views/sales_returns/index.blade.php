@@ -129,11 +129,15 @@
             </svg>
             <h3 class="mt-2 text-sm font-medium text-gray-900">Belum ada retur</h3>
             <p class="mt-1 text-sm text-gray-500">Penjualan ini belum memiliki riwayat retur.</p>
+            @if($sale->fob_type === 'dine_in')
             <div class="mt-6">
                 <a href="{{ route('sales.returns.create', $sale) }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
                     Buat Retur Pertama
                 </a>
             </div>
+            @else
+            <p class="mt-3 text-sm text-gray-500 italic">Retur hanya tersedia untuk penjualan dengan metode layanan "Dine In"</p>
+            @endif
         </div>
     </div>
     @endif

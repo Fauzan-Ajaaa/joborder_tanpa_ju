@@ -8,7 +8,7 @@
         <h1 class="text-3xl font-bold text-gray-900">Detail Penjualan</h1>
         <div class="flex items-center gap-2">
             <a href="{{ route('sales.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">Kembali</a>
-            @if($sale->salesReturns->isEmpty())
+            @if($sale->salesReturns->isEmpty() && $sale->fob_type === 'dine_in')
             <a href="{{ route('sales.returns.create', $sale) }}" class="inline-flex items-center px-4 py-2 bg-amber-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-amber-700">Retur Penjualan</a>
             @endif
         </div>
@@ -66,53 +66,38 @@
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Metode Pembayaran</dt>
                     <dd class="mt-1">
-                        @if($sale->payment_status === 'cash')
+                        @if($sale->payment_method === 'cash')
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Tunai</span>
-                        @elseif($sale->payment_status === 'transfer')
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Transfer</span>
-                        @else
+                        @elseif($sale->payment_method === 'transfer')
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Transfer Bank</span>
+                        @elseif($sale->payment_method === 'ewallet')
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">E-Wallet</span>
+                        @elseif($sale->payment_method === 'cod')
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">COD (Cash on Delivery)</span>
+                        @else
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">-</span>
                         @endif
                     </dd>
                 </div>
                 
-                <!-- Status Approval -->
-                @if($sale->requiresPaymentProof())
+                <!-- Bukti Pembayaran (jika ada) -->
+                @if($sale->payment_proof)
                 <div>
-                    <dt class="text-sm font-medium text-gray-500">Status Approval</dt>
+                    <dt class="text-sm font-medium text-gray-500">Bukti Pembayaran</dt>
                     <dd class="mt-1">
-                        @if($sale->isApproved())
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                Disetujui
-                            </span>
-                            @if($sale->approved_at)
-                                <p class="text-xs text-gray-500 mt-1">{{ $sale->approved_at->format('d F Y H:i') }}</p>
-                            @endif
-                        @elseif($sale->isRejected())
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                                </svg>
-                                Ditolak
-                            </span>
-                            @if($sale->approval_notes)
-                                <p class="text-xs text-red-600 mt-1">{{ $sale->approval_notes }}</p>
-                            @endif
-                        @else
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                <svg class="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Menunggu Persetujuan
-                            </span>
-                        @endif
+                        <a href="{{ route('sales.payment-proof', $sale) }}" 
+                           target="_blank"
+                           class="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Lihat Bukti Pembayaran
+                        </a>
                     </dd>
                 </div>
                 @endif
+                
                 @if($sale->salesReturns && $sale->salesReturns->count() > 0)
                 <div class="md:col-span-2">
                     <dt class="text-sm font-medium text-gray-500">Riwayat Retur</dt>
@@ -139,191 +124,6 @@
             </dl>
         </div>
     </div>
-
-    <!-- Section Upload Bukti Pembayaran (Opsional) -->
-    @if($sale->requiresPaymentProof())
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Bukti Pembayaran</h3>
-        </div>
-        <div class="px-6 py-4">
-            @if($sale->payment_proof)
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span class="text-sm font-medium text-green-800">Bukti pembayaran sudah diupload</span>
-                        </div>
-                        <a href="{{ route('sales.payment-proof', $sale) }}" target="_blank" 
-                           class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                            Lihat Bukti
-                        </a>
-                    </div>
-                </div>
-            @else
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <div class="text-center">
-                        <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                        </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">Belum ada bukti pembayaran</h3>
-                        <p class="mt-1 text-sm text-gray-500">Upload bukti pembayaran jika diperlukan (opsional)</p>
-                        
-                        <div class="mt-4">
-                            <form action="{{ route('sales.upload-payment-proof', $sale) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
-                                @csrf
-                                <div>
-                                    <input type="file" name="payment_proof" accept="image/*,application/pdf"
-                                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-md">
-                                    <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG, PDF. Maksimal 2MB.</p>
-                                </div>
-                                <button type="submit" 
-                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                    </svg>
-                                    Upload Bukti
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            @endif
-        </div>
-    </div>
-
-    <!-- Section Approval Pembayaran (Wajib) -->
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Status Persetujuan Pembayaran</h3>
-        </div>
-        <div class="px-6 py-4">
-            @if($sale->isApproved())
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center">
-                        <svg class="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div>
-                            <h4 class="text-lg font-medium text-green-800">Pembayaran Disetujui</h4>
-                            @if($sale->approved_at)
-                                <p class="text-sm text-green-600">{{ $sale->approved_at->format('d F Y H:i') }}</p>
-                            @endif
-                            @if($sale->approval_notes)
-                                <p class="text-sm text-green-700 mt-1">{{ $sale->approval_notes }}</p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @elseif($sale->isRejected())
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div class="flex items-center">
-                        <svg class="w-6 h-6 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div>
-                            <h4 class="text-lg font-medium text-red-800">Pembayaran Ditolak</h4>
-                            @if($sale->approved_at)
-                                <p class="text-sm text-red-600">{{ $sale->approved_at->format('d F Y H:i') }}</p>
-                            @endif
-                            @if($sale->approval_notes)
-                                <p class="text-sm text-red-700 mt-1">{{ $sale->approval_notes }}</p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @else
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <svg class="w-6 h-6 text-yellow-600 mr-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <div>
-                                <h4 class="text-lg font-medium text-yellow-800">Menunggu Persetujuan</h4>
-                                <p class="text-sm text-yellow-600">Pembayaran perlu disetujui atau ditolak oleh admin</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Panel Approval Admin -->
-                    <div class="mt-4 pt-4 border-t border-yellow-200">
-                        <h5 class="text-sm font-medium text-yellow-800 mb-3">Panel Admin</h5>
-                        <div class="flex space-x-3">
-                            <!-- Tombol Setujui -->
-                            <form action="{{ route('sales.approve-payment', $sale) }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" 
-                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                                        onclick="return confirm('Yakin ingin menyetujui pembayaran ini?')">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                    Setujui
-                                </button>
-                            </form>
-                            
-                            <!-- Tombol Tolak -->
-                            <button type="button" 
-                                    onclick="showRejectModal()"
-                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                Tolak
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            @endif
-        </div>
-    </div>
-    @endif
-
-    <!-- Modal untuk Reject dengan Alasan -->
-    <div id="rejectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Tolak Pembayaran</h3>
-                <form action="{{ route('sales.reject-payment', $sale) }}" method="POST">
-                    @csrf
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Penolakan</label>
-                        <textarea name="rejection_reason" rows="3" required
-                                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                  placeholder="Masukkan alasan penolakan pembayaran..."></textarea>
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="hideRejectModal()"
-                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
-                            Batal
-                        </button>
-                        <button type="submit"
-                                class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
-                            Tolak Pembayaran
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function showRejectModal() {
-            document.getElementById('rejectModal').classList.remove('hidden');
-        }
-        
-        function hideRejectModal() {
-            document.getElementById('rejectModal').classList.add('hidden');
-        }
-    </script>
 
     @if($sale->salesItems && $sale->salesItems->count() > 0)
     <div class="bg-white shadow overflow-hidden sm:rounded-lg">

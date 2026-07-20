@@ -195,6 +195,7 @@ class BillOfMaterialController extends Controller
             'btkl_rate_per_hour' => $btklRatePerHour,
             'bop_rate_per_hour' => $bopRatePerHour,
             'selling_price' => $request->selling_price ?? 0,
+            'profit_margin_percentage' => $request->profit_margin_percentage ?? null,
             'is_active' => true,
         ]);
 

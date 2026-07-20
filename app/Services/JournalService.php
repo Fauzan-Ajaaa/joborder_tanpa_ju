@@ -168,14 +168,14 @@ class JournalService
 
                 // BTKL: tarif × durasi total
                 $btklRate = $bom ? (float)$bom->btkl_rate_per_hour : 0;
-                $btkl = $durasiJam * $btklRate;
+                $btkl = floor($durasiJam * $btklRate);
 
                 // BOP: por_per_jam × durasi total (TANPA bahan penolong)
                 $por = DB::table('overhead_por')
                     ->where('periode', now()->format('Y-m'))
                     ->orderByDesc('id')->first();
                 $porPerJam = (float)($por?->por_per_jam ?? 0);
-                $bopFromPor = $porPerJam * $durasiJam;
+                $bopFromPor = floor($porPerJam * $durasiJam);
 
                 $hppTotal = round((float)$bbb + $btkl + $bopFromPor, 2);
             }
@@ -803,7 +803,7 @@ class JournalService
             $calcService = app(\App\Services\JobOrderCalculationService::class);
             $btklRate = $calcService->getBtklRatePerHour();
         }
-        $laborCost = round($durasiJam * $btklRate, 2);
+        $laborCost = floor($durasiJam * $btklRate);
         
         // Hitung BOP live sesuai yang ditampilkan di view (ringkasan biaya)
         $overheadCost = $this->calculateLiveBOP($jobOrder);
@@ -1167,9 +1167,9 @@ class JournalService
         }
 
         $porRate = $por ? (float) $por->por_per_jam : 0;
-        $overheadBop = $porRate * $durasiJam;
+        $overheadBop = floor($porRate * $durasiJam);
 
-        return round($overheadBop, 2);
+        return $overheadBop;
     }
 
     /**
@@ -1425,7 +1425,7 @@ class JournalService
             $empType = strtoupper($emp->employee_type ?? '');
             $periode = $penggajian->tanggal_penggajian->format('m/Y');
 
-            // BTKL: tidak perlu jurnal distribusi, sudah ditangani lewat BOM/job order
+            // BTKL: tidak perlu jurnal distribusi, tidak masuk ke BiayaOverhead
             if ($empType === 'BTKL') {
                 return null;
             }
@@ -1478,46 +1478,260 @@ class JournalService
     }
 
     /**
-     * Generate jurnal dari pembatalan produk cacat
+     * Generate jurnal dari pengurangan produk (Product Cancellation)
+     * Jurnal sama persis seperti job order finish: BDP (110601, 110602, 110603)
+     * PLUS jurnal distribusi bahan penolong terpisah
      */
-    public function createJournalFromProductCancellation(\App\Models\ProductCancellation $cancellation): \App\Models\JournalEntry
+    public function createJournalFromProductCancellation(\App\Models\ProductCancellation $cancellation): array
     {
-        return DB::transaction(function () use ($cancellation) {
-            $cancellation->loadMissing(['jobOrder', 'product']);
-            
-            $jobOrder = $cancellation->jobOrder;
-            $product = $cancellation->product;
-            
-            $totalCost = $cancellation->total_cost;
-            
-            $journal = \App\Models\JournalEntry::create([
-                'journal_number' => \App\Models\JournalEntry::generateJournalNumber('JU'),
+        $journals = [];
+        
+        $product = $cancellation->product;
+        if (!$product) return $journals;
+        
+        $quantityCancelled = (float)$cancellation->quantity_cancelled;
+        
+        // Ambil BOM untuk produk dengan relasi auxiliaries
+        $bom = $product->billOfMaterials()->with(['items.rawMaterial', 'auxiliaries.auxiliaryMaterial.expenseCoa', 'auxiliaries.auxiliaryMaterial.chartOfAccount'])->first();
+        if (!$bom) return $journals;
+        
+        // ===== JURNAL 1: BAHAN BAKU (BBB) =====
+        $bbbCost = (float)$cancellation->bbb_cost;
+        if ($bbbCost > 0) {
+            $journal1 = JournalEntry::create([
+                'journal_number' => JournalEntry::generateJournalNumber('JU'),
                 'transaction_date' => $cancellation->cancelled_at,
-                'description' => "Produk Cacat - {$product->name} (Job Order: {$jobOrder->kode_job})",
+                'description' => "Pengurangan Produk - Bahan Baku - {$product->name} (Qty: {$quantityCancelled})",
                 'source_type' => 'product_cancellation',
                 'source_id' => $cancellation->id,
                 'status' => 'posted',
-                'total_debit' => $totalCost,
-                'total_credit' => $totalCost,
+                'total_debit' => $bbbCost,
+                'total_credit' => $bbbCost,
+            ]);
+            
+            // DEBIT: BDP - Bahan Baku (110601) - sama seperti job order
+            $this->addJournalItem($journal1, $bbbCost, 0, '110601', 'BDP - Bahan Baku');
+            
+            // CREDIT: Persediaan Bahan Baku per item (dari BOM)
+            foreach ($bom->items as $bomItem) {
+                $rawMaterial = $bomItem->rawMaterial;
+                if (!$rawMaterial) continue;
+                
+                $qtyToReduce = (float)$bomItem->quantity * $quantityCancelled;
+                $itemCost = $qtyToReduce * (float)$bomItem->unit_cost;
+                
+                if ($itemCost <= 0) continue;
+                
+                // Cari COA persediaan bahan baku
+                $persediaanCoa = \App\Models\ChartOfAccount::where('code', 'LIKE', '1104%')
+                    ->where('account_name', 'LIKE', '%' . $rawMaterial->name . '%')
+                    ->where('account_name', 'LIKE', '%Pers%')
+                    ->first();
+                
+                if ($persediaanCoa) {
+                    $this->addJournalItem($journal1, 0, $itemCost, $persediaanCoa->code, $persediaanCoa->account_name);
+                } else {
+                    $this->addJournalItem($journal1, 0, $itemCost, '1104', 'Pers. Bahan Baku - ' . $rawMaterial->name);
+                }
+            }
+            
+            $journals[] = $journal1;
+        }
+        
+        // ===== JURNAL 1B: DISTRIBUSI BAHAN PENOLONG (BP) =====
+        // Buat jurnal terpisah untuk setiap bahan penolong (seperti job order start)
+        foreach ($bom->auxiliaries as $bomAux) {
+            $aux = $bomAux->auxiliaryMaterial;
+            if (!$aux) continue;
+            
+            $qtyToReduce = (float)$bomAux->quantity * $quantityCancelled;
+            $itemCost = $qtyToReduce * (float)$bomAux->unit_cost;
+            
+            if ($itemCost <= 0) continue;
+            
+            $journalBp = JournalEntry::create([
+                'journal_number' => JournalEntry::generateJournalNumber('JU'),
+                'transaction_date' => $cancellation->cancelled_at,
+                'description' => "Pengurangan Produk - Pemakaian Bahan Penolong {$aux->name} - {$product->name} (Qty: {$quantityCancelled})",
+                'source_type' => 'product_cancellation_auxiliary',
+                'source_id' => $cancellation->id,
+                'status' => 'posted',
+                'total_debit' => $itemCost,
+                'total_credit' => $itemCost,
             ]);
 
-            // DEBIT: Kerugian Produk Cacat (akun beban)
-            $this->addJournalItem($journal, $totalCost, 0, '5999', 'Kerugian Produk Cacat');
-
-            // CREDIT: Barang Dalam Proses (BDP) - kembalikan biaya yang sudah dikeluarkan
-            if ($cancellation->bbb_cost > 0) {
-                $this->addJournalItem($journal, 0, $cancellation->bbb_cost, '110601', 'BDP - Bahan Baku');
-            }
-            
-            if ($cancellation->btkl_cost > 0) {
-                $this->addJournalItem($journal, 0, $cancellation->btkl_cost, '110602', 'BDP - BTKL');
-            }
-            
-            if ($cancellation->bop_cost > 0) {
-                $this->addJournalItem($journal, 0, $cancellation->bop_cost, '110603', 'BDP - BOP');
+            // Cari COA expense untuk bahan penolong ini (BOP BP - [Nama Material])
+            $expenseCoa = $aux->expenseCoa;
+            if ($expenseCoa) {
+                // Debit BOP BP - [Nama Material] (expense COA)
+                $this->addJournalItem($journalBp, $itemCost, 0, $expenseCoa->code, $expenseCoa->account_name);
+            } else {
+                // Fallback: gunakan COA generic BOP BP
+                $coaName = "BOP BP - {$aux->name}";
+                $this->addJournalItem($journalBp, $itemCost, 0, '55', $coaName);
             }
 
-            return $journal;
-        });
+            // Credit Persediaan Bahan Penolong - [Nama Material]
+            $inventoryCoa = $aux->chartOfAccount;
+            if ($inventoryCoa) {
+                $this->addJournalItem($journalBp, 0, $itemCost, $inventoryCoa->code, $inventoryCoa->account_name);
+            } else {
+                // Fallback: gunakan COA generic persediaan bahan penolong
+                $coaName = "Pers Bahan Penolong {$aux->name}";
+                $this->addJournalItem($journalBp, 0, $itemCost, '1107', $coaName);
+            }
+            
+            $journals[] = $journalBp;
+        }
+        
+        // ===== JURNAL 2: TENAGA KERJA LANGSUNG (BTKL) =====
+        $btklCost = (float)$cancellation->btkl_cost;
+        if ($btklCost > 0) {
+            $journal2 = JournalEntry::create([
+                'journal_number' => JournalEntry::generateJournalNumber('JU'),
+                'transaction_date' => $cancellation->cancelled_at,
+                'description' => "Pengurangan Produk - Tenaga Kerja - {$product->name} (Qty: {$quantityCancelled})",
+                'source_type' => 'product_cancellation',
+                'source_id' => $cancellation->id,
+                'status' => 'posted',
+                'total_debit' => $btklCost,
+                'total_credit' => $btklCost,
+            ]);
+            
+            // DEBIT: BDP - BTKL (110602) - sama seperti job order
+            $this->addJournalItem($journal2, $btklCost, 0, '110602', 'BDP - BTKL');
+            
+            // CREDIT: Beban Gaji dan Upah
+            $this->addJournalItem($journal2, 0, $btklCost, '57', 'Beban Gaji dan Upah');
+            
+            $journals[] = $journal2;
+        }
+        
+        // ===== JURNAL 3: OVERHEAD PABRIK (BOP) =====
+        $bopCost = (float)$cancellation->bop_cost;
+        if ($bopCost > 0) {
+            $journal3 = JournalEntry::create([
+                'journal_number' => JournalEntry::generateJournalNumber('JU'),
+                'transaction_date' => $cancellation->cancelled_at,
+                'description' => "Pengurangan Produk - Overhead - {$product->name} (Qty: {$quantityCancelled})",
+                'source_type' => 'product_cancellation',
+                'source_id' => $cancellation->id,
+                'status' => 'posted',
+                'total_debit' => $bopCost,
+                'total_credit' => $bopCost,
+            ]);
+            
+            // DEBIT: BDP - BOP (110603) - sama seperti job order
+            $this->addJournalItem($journal3, $bopCost, 0, '110603', 'BDP - BOP');
+            
+            // CREDIT: BOP per komponen (sama seperti job order finish)
+            // Ambil semua biaya overhead BOP periode ini
+            $bebanItems = \App\Models\BiayaOverhead::with('account')
+                ->where('kategori', 'BOP')
+                ->whereRaw("DATE_FORMAT(periode, '%Y-%m') = ?", [$cancellation->cancelled_at->format('Y-m')])
+                ->get();
+            
+            $totalBebanBulan = $bebanItems->sum('total');
+            
+            // Hitung total biaya untuk alokasi (BiayaOverhead + Bahan Penolong)
+            $totalBpCost = 0;
+            foreach ($bom->auxiliaries as $bomAux) {
+                $aux = $bomAux->auxiliaryMaterial;
+                if (!$aux) continue;
+                
+                $qtyToReduce = (float)$bomAux->quantity * $quantityCancelled;
+                $itemCost = $qtyToReduce * (float)$bomAux->unit_cost;
+                
+                if ($itemCost > 0) {
+                    $totalBpCost += $itemCost;
+                }
+            }
+            
+            $totalAlokasiBasis = $totalBebanBulan + $totalBpCost;
+            
+            if ($totalAlokasiBasis > 0) {
+                $totalAlokasi = 0;
+                $alokasiItems = [];
+                
+                // Alokasi BiayaOverhead items
+                foreach ($bebanItems as $beban) {
+                    if ((float)$beban->total <= 0) continue;
+                    
+                    // Hitung proporsi komponen ini terhadap total alokasi basis
+                    $proporsi = (float)$beban->total / $totalAlokasiBasis;
+                    $alokasi = $proporsi * $bopCost;
+                    
+                    $totalAlokasi += $alokasi;
+                    $alokasiItems[] = [
+                        'type' => 'beban',
+                        'beban' => $beban,
+                        'alokasi' => $alokasi
+                    ];
+                }
+                
+                // Alokasi Bahan Penolong items
+                foreach ($bom->auxiliaries as $bomAux) {
+                    $aux = $bomAux->auxiliaryMaterial;
+                    if (!$aux) continue;
+                    
+                    $qtyToReduce = (float)$bomAux->quantity * $quantityCancelled;
+                    $itemBpCost = $qtyToReduce * (float)$bomAux->unit_cost;
+                    
+                    if ($itemBpCost <= 0) continue;
+                    
+                    // Hitung proporsi bahan penolong ini terhadap total alokasi basis
+                    $proporsi = $itemBpCost / $totalAlokasiBasis;
+                    $alokasi = $proporsi * $bopCost;
+                    
+                    $totalAlokasi += $alokasi;
+                    $alokasiItems[] = [
+                        'type' => 'auxiliary',
+                        'aux' => $aux,
+                        'alokasi' => $alokasi
+                    ];
+                }
+                
+                // Bulatkan dan catat jurnal
+                $totalAlokasiRounded = 0;
+                foreach ($alokasiItems as $idx => $item) {
+                    $alokasiRounded = round($item['alokasi'], 2);
+                    
+                    // Item terakhir: sesuaikan dengan sisa supaya balance
+                    if ($idx === count($alokasiItems) - 1) {
+                        $alokasiRounded = round($bopCost - $totalAlokasiRounded, 2);
+                    }
+                    
+                    $totalAlokasiRounded += $alokasiRounded;
+                    
+                    if ($alokasiRounded > 0) {
+                        if ($item['type'] === 'beban') {
+                            $beban = $item['beban'];
+                            $coaCode = $beban->account?->code ?? '53';
+                            $coaName = $beban->account?->account_name ?? $beban->jenis_biaya;
+                            $this->addJournalItem($journal3, 0, $alokasiRounded, $coaCode, $coaName);
+                        } else {
+                            // Bahan Penolong
+                            $aux = $item['aux'];
+                            $bopBpCoa = \App\Models\ChartOfAccount::where('code', 'LIKE', '55%')
+                                ->where('account_name', 'LIKE', '%' . $aux->name . '%')
+                                ->first();
+                            
+                            if ($bopBpCoa) {
+                                $this->addJournalItem($journal3, 0, $alokasiRounded, $bopBpCoa->code, $bopBpCoa->account_name);
+                            } else {
+                                $this->addJournalItem($journal3, 0, $alokasiRounded, '55', 'BOP BP - ' . $aux->name);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Fallback: jika tidak ada BOP breakdown, gunakan akun BOP umum
+                $this->addJournalItem($journal3, 0, $bopCost, '53', 'Beban Overhead Pabrik');
+            }
+            
+            $journals[] = $journal3;
+        }
+        
+        return $journals;
     }
 }

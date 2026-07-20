@@ -9,11 +9,25 @@ use Illuminate\Http\Request;
 
 class OverheadPorController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $porItems = OverheadPor::orderByDesc('periode')->paginate(15);
+        // Ambil filter bulan dan tahun dari request, default ke bulan dan tahun saat ini
+        $month = $request->input('month', now()->month);
+        $year = $request->input('year', now()->year);
 
-        return view('overhead_por.index', compact('porItems'));
+        // Format periode sesuai dengan format di database (YYYY-MM)
+        $periodeFilter = sprintf('%04d-%02d', $year, $month);
+
+        // Query dengan filter
+        $query = OverheadPor::query();
+
+        if ($month && $year) {
+            $query->where('periode', $periodeFilter);
+        }
+
+        $porItems = $query->orderByDesc('periode')->paginate(15);
+
+        return view('overhead_por.index', compact('porItems', 'month', 'year'));
     }
 
     public function create()

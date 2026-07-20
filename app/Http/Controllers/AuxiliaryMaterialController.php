@@ -416,34 +416,67 @@ class AuxiliaryMaterialController extends Controller
                 if ($qtyPerUnit <= 0)
                     continue;
 
-                $qtyTotalRecipe = $qtyPerUnit * (float) ($detail->quantity ?? 0);
-                if ($qtyTotalRecipe <= 0)
-                    continue;
-
                 $recipeUnit = $bomAux->unit ?: $auxiliaryMaterial->unit;
                 $baseUnit = $auxiliaryMaterial->unit;
 
-                // Konversi ke base unit
-                $qtyOutBase = $qtyTotalRecipe;
-                if ($recipeUnit !== $baseUnit) {
-                    $sampleItem = \App\Models\PurchaseItem::where('auxiliary_material_id', $auxiliaryMaterial->id)
-                        ->whereNotNull('conversion_factor')->where('conversion_factor', '>', 0)->first();
-                    $convFactor = $sampleItem ? (float) $sampleItem->conversion_factor : 1.0;
-                    if ($convFactor > 0)
-                        $qtyOutBase = $qtyTotalRecipe / $convFactor;
+                // 1. Baris Pemakaian Awal (Original Job Order Detail Qty)
+                $qtyInitialRecipe = $qtyPerUnit * (float) ($detail->quantity ?? 0);
+                if ($qtyInitialRecipe > 0) {
+                    $qtyOutBaseInit = $qtyInitialRecipe;
+                    if ($recipeUnit !== $baseUnit) {
+                        $sampleItem = \App\Models\PurchaseItem::where('auxiliary_material_id', $auxiliaryMaterial->id)
+                            ->whereNotNull('conversion_factor')->where('conversion_factor', '>', 0)->first();
+                        $convFactor = $sampleItem ? (float) $sampleItem->conversion_factor : 1.0;
+                        if ($convFactor > 0)
+                            $qtyOutBaseInit = $qtyInitialRecipe / $convFactor;
+                    }
+                    $date = $job->mulai_job_at ?? $job->order_date ?? $job->created_at;
+                    $result[] = (object) [
+                        'date' => $date,
+                        'display_date' => $date,
+                        'type' => 'out',
+                        'qty_in' => 0,
+                        'qty_out' => $qtyOutBaseInit,
+                        'unit_price_in' => null,
+                        'unit_price_out' => (float) ($auxiliaryMaterial->price_per_unit ?? 0),
+                        'notes' => 'Pemakaian untuk Job ' . ($job->kode_job ?? $job->id) . ' - ' . ($product->name ?? ''),
+                    ];
                 }
 
-                $date = $job->mulai_job_at ?? $job->order_date ?? $job->created_at;
-                $result[] = (object) [
-                    'date' => $date,
-                    'display_date' => $date,
-                    'type' => 'out',
-                    'qty_in' => 0,
-                    'qty_out' => $qtyOutBase,
-                    'unit_price_in' => null,
-                    'unit_price_out' => (float) ($auxiliaryMaterial->price_per_unit ?? 0),
-                    'notes' => 'Pemakaian untuk Job ' . ($job->kode_job ?? $job->id) . ' - ' . ($product->name ?? ''),
-                ];
+                // 2. Baris Tambahan Pemakaian Cacat / Pembatalan (jika ada)
+                $cancelledQty = \App\Models\ProductCancellation::where('job_order_id', $job->id)
+                    ->where('product_id', $product->id)
+                    ->where('status', '!=', 'rejected')
+                    ->sum('quantity_cancelled') ?? 0;
+                
+                if ($cancelledQty > 0) {
+                    $qtyCancelRecipe = $qtyPerUnit * (float) $cancelledQty;
+                    $qtyOutBaseCancel = $qtyCancelRecipe;
+                    if ($recipeUnit !== $baseUnit) {
+                        $sampleItem = \App\Models\PurchaseItem::where('auxiliary_material_id', $auxiliaryMaterial->id)
+                            ->whereNotNull('conversion_factor')->where('conversion_factor', '>', 0)->first();
+                        $convFactor = $sampleItem ? (float) $sampleItem->conversion_factor : 1.0;
+                        if ($convFactor > 0)
+                            $qtyOutBaseCancel = $qtyCancelRecipe / $convFactor;
+                    }
+                    
+                    $cancellation = \App\Models\ProductCancellation::where('job_order_id', $job->id)
+                        ->where('product_id', $product->id)
+                        ->where('status', '!=', 'rejected')
+                        ->first();
+                    $date = $cancellation?->cancelled_at ?? $job->mulai_job_at ?? $job->created_at;
+
+                    $result[] = (object) [
+                        'date' => $date,
+                        'display_date' => $date,
+                        'type' => 'out',
+                        'qty_in' => 0,
+                        'qty_out' => $qtyOutBaseCancel,
+                        'unit_price_in' => null,
+                        'unit_price_out' => (float) ($auxiliaryMaterial->price_per_unit ?? 0),
+                        'notes' => 'Tambahan Pemakaian (Cacat/Pembatalan Job ' . ($job->kode_job ?? $job->id) . ')',
+                    ];
+                }
             }
             return $result;
         });
