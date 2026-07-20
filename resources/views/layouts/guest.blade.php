@@ -57,7 +57,7 @@
                         <div>
                             <a href="/" class="flex items-center space-x-3 mb-12">
                                 <x-application-logo class="h-12 w-auto brightness-0 invert" />
-                                <span class="text-2xl font-bold text-white tracking-wider">Manufactur Application</span>
+                                <span class="text-2xl font-bold text-white tracking-wider">MAFF-APP</span>
                             </a>
                             <h2 class="text-4xl font-extrabold text-white leading-tight">
                                 Manufaktur <br>

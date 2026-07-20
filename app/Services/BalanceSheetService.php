@@ -149,8 +149,8 @@ class BalanceSheetService
                 continue;
             }
 
-            // Special handling for PPN
-            if ($accountCode === '212') {
+            // Special handling for PPN (212 or 22 for output VAT)
+            if ($accountCode === '212' || $accountCode === '22') {
                 if ($balanceAmount < 0) {
                     $totalAssets += abs($balanceAmount);
                 } else {
@@ -229,14 +229,15 @@ class BalanceSheetService
                 continue;
             }
 
-            if ($accountCode === '212') {
+            // Special handling for PPN (212 or 22 for output VAT)
+            if ($accountCode === '212' || $accountCode === '22') {
                 if ($balance < 0) {
                     $account['name'] = 'PPN Masukan';
                     $account['balance'] = abs($balance);
                     $accountCode = '212-PPN-MASUKAN';
                 } else {
                     $account['name'] = 'PPN Keluaran';
-                    $accountCode = '212-PPN-KELUARAN';
+                    $accountCode = '22-PPN-KELUARAN';
                 }
             }
 
@@ -250,8 +251,8 @@ class BalanceSheetService
                 } else {
                     $category = 'other_assets';
                 }
-            } elseif ($accountType === 'liability' || $accountCode === '212-PPN-KELUARAN') {
-                if (preg_match('/^21[0-9]/', $accountCode)) {
+            } elseif ($accountType === 'liability' || $accountCode === '212-PPN-KELUARAN' || $accountCode === '22-PPN-KELUARAN') {
+                if (preg_match('/^2[12][0-9]/', $accountCode) || $accountCode === '22-PPN-KELUARAN') {
                     $category = 'current_liabilities';
                 } else {
                     $category = 'long_term_liabilities';

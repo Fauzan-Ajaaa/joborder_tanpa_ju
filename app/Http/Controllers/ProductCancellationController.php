@@ -78,6 +78,7 @@ class ProductCancellationController extends Controller
                 'quantity_cancelled' => (int)$validated['quantity_cancelled'],
                 'reason' => $validated['reason'],
                 'status' => 'completed',
+                'cancelled_at' => $jobOrder->order_date, // Tanggal pembatalan mengikuti tanggal pemesanan (tidak real-time)
             ]);
 
             // Hitung biaya berdasarkan progress job order
@@ -86,33 +87,108 @@ class ProductCancellationController extends Controller
 
             // Create journal entry immediately
             $cancellation->createJournalEntry();
-
-            // LANGSUNG kurangi stok produk saat input
-            \Log::info('=== STARTING STOCK REDUCTION ===');
+            
+            // Kurangi stok bahan baku dan bahan penolong berdasarkan BOM produk
+            \Log::info('=== STARTING STOCK REDUCTION FROM BOM ===');
             \Log::info('Product ID: ' . $validated['product_id']);
             
-            $product = Product::withoutGlobalScopes()->lockForUpdate()->findOrFail($validated['product_id']);
-            $quantityCancelled = (int)$validated['quantity_cancelled'];
+            $jobOrder = JobOrder::findOrFail($validated['job_order_id']);
+            $product = Product::withoutGlobalScopes()->findOrFail($validated['product_id']);
+            $quantityCancelled = (float)$validated['quantity_cancelled'];
             
-            $oldStock = (float)$product->stock;
-            \Log::info('OLD STOCK: ' . $oldStock);
-            \Log::info('QUANTITY TO REDUCE: ' . $quantityCancelled);
-            
-            // Kurangi stok produk
-            $newStock = $oldStock - $quantityCancelled;
-            $product->stock = $newStock;
-            
-            \Log::info('NEW STOCK (before save): ' . $product->stock);
-            
-            $product->save();
-            $product->refresh();
-            
-            \Log::info('NEW STOCK (after save): ' . $product->stock);
-            \Log::info('Product cancellation created and stock reduced: ' . $cancellation->id . 
-                      ', Product: ' . $product->name . 
-                      ', Qty Cancelled: ' . $quantityCancelled . 
-                      ', Old Stock: ' . $oldStock .
-                      ', New Stock: ' . $product->stock);
+            $bom = \App\Models\BillOfMaterial::with(['items.rawMaterial', 'auxiliaries.auxiliaryMaterial'])
+                ->where('product_id', $product->id)
+                ->first();
+
+            if ($bom) {
+                // 1. Kurangi stok bahan baku
+                foreach ($bom->items as $bomItem) {
+                    $raw = $bomItem->rawMaterial;
+                    if (!$raw) continue;
+                    
+                    $qtyPerUnit = (float)$bomItem->quantity;
+                    $qtyTotalRecipe = $qtyPerUnit * $quantityCancelled;
+                    $recipeUnit = $bomItem->unit ?: $raw->unit;
+                    $baseUnit = $raw->unit;
+                    
+                    $qtyTotalBase = $qtyTotalRecipe;
+                    if ($recipeUnit !== $baseUnit) {
+                        $sampleItem = \App\Models\PurchaseItem::where('raw_material_id', $raw->id)
+                            ->whereNotNull('conversion_factor')->where('conversion_factor', '>', 0)->first();
+                        $convFactor = $sampleItem ? (float)$sampleItem->conversion_factor : 1.0;
+                        if ($convFactor > 0) {
+                            $qtyTotalBase = $qtyTotalRecipe / $convFactor;
+                        }
+                    }
+                    
+                    if ($qtyTotalBase > 0) {
+                        \Log::info('Reducing raw material stock for cancellation (waste & remake)', [
+                            'raw_material' => $raw->name,
+                            'qty_total_recipe' => $qtyTotalRecipe,
+                            'recipe_unit' => $recipeUnit,
+                            'qty_to_reduce_base' => $qtyTotalBase,
+                            'base_unit' => $baseUnit,
+                            'current_stock' => $raw->stock,
+                        ]);
+                        $raw->stock -= $qtyTotalBase;
+                        $raw->save();
+
+                        // Buat pemakaian baru di RawMaterialUsage agar tampil sebagai baris terpisah di kartu stok
+                        $originalUsage = \App\Models\RawMaterialUsage::where('job_order_id', $jobOrder->id)
+                            ->where('raw_material_id', $raw->id)
+                            ->first();
+                        
+                        $unitPrice = $originalUsage ? (float)$originalUsage->unit_price : $raw->getFifoPrice($qtyTotalBase, $baseUnit);
+                        
+                        \App\Models\RawMaterialUsage::create([
+                            'job_order_id'    => $jobOrder->id,
+                            'raw_material_id' => $raw->id,
+                            'quantity_used'   => $qtyTotalRecipe,
+                            'unit'            => $recipeUnit ?: $raw->unit,
+                            'unit_price'      => $unitPrice,
+                            'cost'            => round($qtyTotalRecipe * $unitPrice, 2),
+                            'company_id'      => $jobOrder->company_id,
+                            'created_at'      => $cancellation->cancelled_at, // Gunakan tanggal pembatalan agar urutan kartu stok presisi
+                            'updated_at'      => $cancellation->cancelled_at,
+                        ]);
+                    }
+                }
+                
+                // 2. Kurangi stok bahan penolong
+                foreach ($bom->auxiliaries as $bomAux) {
+                    $aux = $bomAux->auxiliaryMaterial;
+                    if (!$aux) continue;
+                    
+                    $qtyPerUnit = (float)$bomAux->quantity;
+                    $qtyTotalRecipe = $qtyPerUnit * $quantityCancelled;
+                    $recipeUnit = $bomAux->unit ?: $aux->unit;
+                    $baseUnit = $aux->unit;
+                    
+                    $qtyTotalBase = $qtyTotalRecipe;
+                    if ($recipeUnit !== $baseUnit) {
+                        $sampleItem = \App\Models\PurchaseItem::where('auxiliary_material_id', $aux->id)
+                            ->whereNotNull('conversion_factor')->where('conversion_factor', '>', 0)->first();
+                        $convFactor = $sampleItem ? (float)$sampleItem->conversion_factor : 1.0;
+                        if ($convFactor > 0) {
+                            $qtyTotalBase = $qtyTotalRecipe / $convFactor;
+                        }
+                    }
+                    
+                    if ($qtyTotalBase > 0) {
+                        \Log::info('Cancellation adjusted: auxiliary material effective qty reduced', [
+                            'auxiliary_material' => $aux->name,
+                            'qty_cancelled' => $qtyTotalBase,
+                            'base_unit' => $baseUnit,
+                        ]);
+                        // Kurangi kolom stock fisik bahan penolong di database agar sinkron
+                        $aux->stock -= $qtyTotalBase;
+                        $aux->save();
+                    }
+                }
+                \Log::info('Product cancellation created: ' . $cancellation->id . ' - BOM materials reduced for ' . $quantityCancelled . ' items');
+            } else {
+                \Log::warning('BOM not found for cancelled product ' . $product->name . '. No stock reduced.');
+            }
             \Log::info('=== STOCK REDUCTION COMPLETE ===');
         });
 
@@ -186,7 +262,7 @@ class ProductCancellationController extends Controller
                             $btklPerUnit = $totalDurationHours * $btklRatePerHour;
                             
                             $bopRatePerHour = (float)($bom->bop_rate_per_hour ?? 0);
-                            $bopPerUnit = $totalDurationHours * $bopRatePerHour;
+                            $bopPerUnit = floor($totalDurationHours * $bopRatePerHour);
                             
                             \Log::info('BOM Costs - BBB: ' . $bbbPerUnit . ', BTKL: ' . $btklPerUnit . ', BOP: ' . $bopPerUnit);
                         } else {
@@ -206,8 +282,8 @@ class ProductCancellationController extends Controller
                             'cancelled_quantity' => (int)$cancelledQuantity,
                             'available_quantity' => $availableQuantity,
                             'bbb_per_unit' => round(max(0, $bbbPerUnit), 2),
-                            'btkl_per_unit' => round(max(0, $btklPerUnit), 2),
-                            'bop_per_unit' => round(max(0, $bopPerUnit), 2),
+                            'btkl_per_unit' => floor(max(0, $btklPerUnit)),
+                            'bop_per_unit' => floor(max(0, $bopPerUnit)),
                             'job_status' => (string)$jobOrder->status,
                         ];
                         
@@ -259,7 +335,7 @@ class ProductCancellationController extends Controller
                         $btklPerUnit = $totalDurationHours * $btklRatePerHour;
                         
                         $bopRatePerHour = (float)($bom->bop_rate_per_hour ?? 0);
-                        $bopPerUnit = $totalDurationHours * $bopRatePerHour;
+                        $bopPerUnit = floor($totalDurationHours * $bopRatePerHour);
 
                         \Log::info('BOM found - BBB: ' . $bbbPerUnit . ', BTKL: ' . $btklPerUnit . ', BOP: ' . $bopPerUnit);
                     }
@@ -274,8 +350,8 @@ class ProductCancellationController extends Controller
                         'cancelled_quantity' => (int)$cancelledQuantity,
                         'available_quantity' => $availableQuantity,
                         'bbb_per_unit' => round(max(0, $bbbPerUnit), 2),
-                        'btkl_per_unit' => round(max(0, $btklPerUnit), 2),
-                        'bop_per_unit' => round(max(0, $bopPerUnit), 2),
+                        'btkl_per_unit' => floor(max(0, $btklPerUnit)),
+                        'bop_per_unit' => floor(max(0, $bopPerUnit)),
                         'job_status' => (string)$jobOrder->status,
                     ];
                     

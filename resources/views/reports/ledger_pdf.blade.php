@@ -52,23 +52,31 @@
             <tr>
                 <td class="text-center">{{ \Carbon\Carbon::create($year, $month, 1)->subDay()->format('d/m/Y') }}</td>
                 <td>Saldo Awal</td>
-                <td class="text-right">{{ $openingBalance >= 0 ? number_format($openingBalance, 0, ',', '.') : '' }}</td>
-                <td class="text-right">{{ $openingBalance < 0 ? number_format(abs($openingBalance), 0, ',', '.') : '' }}</td>
-                <td class="text-right">{{ number_format($openingBalance, 0, ',', '.') }}</td>
+                <td class="text-right">{{ $account->normal_balance_position == 'debit' && $openingBalance != 0 ? number_format(abs($openingBalance), 0, ',', '.') : '-' }}</td>
+                <td class="text-right">{{ $account->normal_balance_position == 'credit' && $openingBalance != 0 ? number_format(abs($openingBalance), 0, ',', '.') : '-' }}</td>
+                <td class="text-right">{{ number_format(abs($openingBalance), 0, ',', '.') }}</td>
             </tr>
             @endif
             @foreach($transactions as $transaction)
                 @php
                     $debit  = (float) $transaction->debit;
                     $credit = (float) $transaction->credit;
-                    $runningBalance += $debit - $credit;
+                    
+                    // Hitung running balance berdasarkan posisi normal balance
+                    if ($account->normal_balance_position === 'debit') {
+                        // Akun Debit (1, 5, 6, 7, 8): Debit menambah, Kredit mengurangi
+                        $runningBalance += $debit - $credit;
+                    } else {
+                        // Akun Kredit (2, 3, 4): Kredit menambah, Debit mengurangi
+                        $runningBalance += $credit - $debit;
+                    }
                 @endphp
                 <tr>
                     <td class="text-center">{{ \Carbon\Carbon::parse($transaction->journalEntry->transaction_date)->format('d/m/Y') }}</td>
-                    <td>{{ $transaction->description ?: $transaction->journalEntry->description }}</td>
+                    <td>{{ $transaction->journalEntry->description ?? '-' }}</td>
                     <td class="text-right">{{ $debit  > 0 ? number_format($debit, 0, ',', '.')  : '' }}</td>
                     <td class="text-right">{{ $credit > 0 ? number_format($credit, 0, ',', '.') : '' }}</td>
-                    <td class="text-right">{{ number_format($runningBalance, 0, ',', '.') }}</td>
+                    <td class="text-right">{{ number_format(abs($runningBalance), 0, ',', '.') }}</td>
                 </tr>
             @endforeach
         </tbody>

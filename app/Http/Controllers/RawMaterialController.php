@@ -332,11 +332,13 @@ class RawMaterialController extends Controller
             });
 
         // Mutasi KELUAR: dari pemakaian bahan baku (RawMaterialUsage)
-        $usages = \App\Models\RawMaterialUsage::with('transaction')
+        $usages = \App\Models\RawMaterialUsage::with(['transaction', 'jobOrder'])
             ->where('raw_material_id', $rawMaterial->id)
             ->get()
             ->map(function ($usage) use ($rawMaterial) {
                 $trx = $usage->transaction;
+                $job = $usage->jobOrder;
+                
                 $fromUnit = $usage->unit ?: $rawMaterial->unit;
                 $toUnit = $rawMaterial->unit;
                 $factor = $fromUnit && $toUnit ? $rawMaterial->getMaterialConversionFactor($fromUnit, $toUnit) : 1;
@@ -346,6 +348,26 @@ class RawMaterialController extends Controller
                 // created_at usage sebagai penentu urutan kronologis
                 $sortDate = $usage->created_at ?? $trx?->transaction_date;
 
+                // Tentukan deskripsi pemakaian terpisah
+                $isRemake = false;
+                if ($job) {
+                    $isRemake = \App\Models\RawMaterialUsage::where('job_order_id', $usage->job_order_id)
+                        ->where('raw_material_id', $usage->raw_material_id)
+                        ->where('id', '<', $usage->id)
+                        ->exists();
+                }
+
+                $notes = 'Pemakaian bahan baku';
+                if ($job) {
+                    if ($isRemake) {
+                        $notes = 'Tambahan Pemakaian (Cacat/Pembatalan Job ' . ($job->kode_job ?? $job->id) . ')';
+                    } else {
+                        $notes = 'Pemakaian untuk Job ' . ($job->kode_job ?? $job->id);
+                    }
+                } else if ($trx) {
+                    $notes = $trx->notes ?? 'Pemakaian bahan baku';
+                }
+
                 return (object) [
                     'date' => $sortDate,
                     'display_date' => $trx?->transaction_date ?? $usage->created_at,
@@ -354,7 +376,7 @@ class RawMaterialController extends Controller
                     'qty_out' => $qtyOutBase,
                     'unit_price_in' => null,
                     'unit_price_out' => $unitPriceOut,
-                    'notes' => $trx->notes ?? 'Pemakaian bahan baku',
+                    'notes' => $notes,
                 ];
             });
 
@@ -790,17 +812,39 @@ class RawMaterialController extends Controller
                 ];
             });
 
-        $usages = \App\Models\RawMaterialUsage::with('transaction')
+        $usages = \App\Models\RawMaterialUsage::with(['transaction', 'jobOrder'])
             ->where('raw_material_id', $rawMaterial->id)
             ->get()
             ->map(function ($usage) use ($rawMaterial) {
                 $trx = $usage->transaction;
+                $job = $usage->jobOrder;
+                
                 $fromUnit = $usage->unit ?: $rawMaterial->unit;
                 $toUnit = $rawMaterial->unit;
                 $factor = $fromUnit && $toUnit ? $rawMaterial->getMaterialConversionFactor($fromUnit, $toUnit) : 1;
                 $qtyOutBase = ($usage->quantity_used ?? 0) * $factor;
                 $unitPriceOut = (float) ($usage->unit_price ?? 0);
                 $sortDate = $usage->created_at ?? $trx?->transaction_date;
+
+                // Tentukan deskripsi pemakaian terpisah
+                $isRemake = false;
+                if ($job) {
+                    $isRemake = \App\Models\RawMaterialUsage::where('job_order_id', $usage->job_order_id)
+                        ->where('raw_material_id', $usage->raw_material_id)
+                        ->where('id', '<', $usage->id)
+                        ->exists();
+                }
+
+                $notes = 'Pemakaian bahan baku';
+                if ($job) {
+                    if ($isRemake) {
+                        $notes = 'Tambahan Pemakaian (Cacat/Pembatalan Job ' . ($job->kode_job ?? $job->id) . ')';
+                    } else {
+                        $notes = 'Pemakaian untuk Job ' . ($job->kode_job ?? $job->id);
+                    }
+                } else if ($trx) {
+                    $notes = $trx->notes ?? 'Pemakaian bahan baku';
+                }
 
                 return (object) [
                     'date' => $sortDate,
@@ -810,7 +854,7 @@ class RawMaterialController extends Controller
                     'qty_out' => $qtyOutBase,
                     'unit_price_in' => null,
                     'unit_price_out' => $unitPriceOut,
-                    'notes' => $trx->notes ?? 'Pemakaian bahan baku',
+                    'notes' => $notes,
                 ];
             });
 

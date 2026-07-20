@@ -11,6 +11,39 @@
         </a>
     </div>
 
+    {{-- Filter Card --}}
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <form action="{{ route('overhead-por.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+                <label for="month" class="block text-xs font-medium text-gray-700 mb-1">Bulan</label>
+                <select id="month" name="month" class="w-full text-sm border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500">
+                    @foreach(range(1, 12) as $m)
+                        <option value="{{ $m }}" @selected($month == $m)>
+                            {{ \Carbon\Carbon::create(null, $m)->translatedFormat('F') }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label for="year" class="block text-xs font-medium text-gray-700 mb-1">Tahun</label>
+                <input type="number" 
+                       id="year" 
+                       name="year" 
+                       value="{{ $year }}" 
+                       min="2000" 
+                       max="2099" 
+                       step="1" 
+                       class="w-full text-sm border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div class="flex items-end">
+                <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-3 rounded-md shadow-sm">
+                    Tampilkan
+                </button>
+            </div>
+        </form>
+    </div>
+
     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -42,7 +75,9 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">Belum ada data POR</td>
+                        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                            Belum ada data POR untuk periode {{ \Carbon\Carbon::create(null, $month)->translatedFormat('F') }} {{ $year }}
+                        </td>
                     </tr>
                 @endforelse
             </tbody>
@@ -50,7 +85,7 @@
     </div>
 
     <div>
-        {{ $porItems->links() }}
+        {{ $porItems->appends(['month' => $month, 'year' => $year])->links() }}
     </div>
 </div>
 @endsection

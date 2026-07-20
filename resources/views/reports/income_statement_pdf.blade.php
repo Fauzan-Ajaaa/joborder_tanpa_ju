@@ -49,8 +49,29 @@
             <td class="text-right">{{ $fmt($totalRevenue) }}</td>
         </tr>
 
-        {{-- BEBAN --}}
-        <tr class="section-header"><td colspan="2">BEBAN</td></tr>
+        {{-- HPP (HARGA POKOK PENJUALAN) --}}
+        <tr class="section-header"><td colspan="2">HARGA POKOK PENJUALAN (HPP)</td></tr>
+        @foreach($cogs as $account)
+        <tr class="account-row">
+            <td>{{ $account['code'] }} - {{ $account['name'] }}</td>
+            <td class="text-right">{{ $fmt($account['amount']) }}</td>
+        </tr>
+        @endforeach
+        <tr class="total-row">
+            <td>Total HPP</td>
+            <td class="text-right loss">({{ $fmt($totalCOGS) }})</td>
+        </tr>
+
+        {{-- LABA KOTOR --}}
+        <tr class="net-income" style="background:#d4edda;">
+            <td>LABA KOTOR</td>
+            <td class="text-right {{ $grossProfit >= 0 ? 'profit' : 'loss' }}">
+                {{ $fmt($grossProfit) }}
+            </td>
+        </tr>
+
+        {{-- BEBAN OPERASIONAL --}}
+        <tr class="section-header"><td colspan="2">BEBAN OPERASIONAL</td></tr>
         @foreach($expenses as $account)
         <tr class="account-row">
             <td>{{ $account['code'] }} - {{ $account['name'] }}</td>
@@ -58,8 +79,8 @@
         </tr>
         @endforeach
         <tr class="total-row">
-            <td>Total Beban</td>
-            <td class="text-right">{{ $fmt($totalExpense) }}</td>
+            <td>Total Beban Operasional</td>
+            <td class="text-right loss">({{ $fmt($totalExpense) }})</td>
         </tr>
 
         {{-- LABA/RUGI BERSIH --}}

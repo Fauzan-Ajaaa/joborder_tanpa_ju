@@ -28,7 +28,7 @@
                     <!-- Master Data Dropdown -->
                     <div x-data="{ open: false }" class="relative">
                         <button @click="open = !open" @click.away="open = false"
-                            class="github-nav-link {{ request()->routeIs('products.*') || request()->routeIs('raw-materials.*') || request()->routeIs('auxiliary-materials.*') || request()->routeIs('suppliers.*') || request()->routeIs('employees.*') || request()->routeIs('customers.*') || request()->routeIs('chart-of-accounts.*') || request()->routeIs('biaya-overhead.*') || request()->routeIs('units.*') || request()->routeIs('aset.*')
+                            class="github-nav-link {{ request()->routeIs('products.*') || request()->routeIs('raw-materials.*') || request()->routeIs('auxiliary-materials.*') || request()->routeIs('suppliers.*') || request()->routeIs('employees.*') || request()->routeIs('customers.*') || request()->routeIs('chart-of-accounts.*') || request()->routeIs('units.*') || request()->routeIs('aset.*') || request()->routeIs('overhead-por.*')
                                 ? 'active' : '' }}">
                             <span>Master Data</span>
                             <svg class="ms-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -55,7 +55,7 @@
                     <!-- Transaksi Dropdown -->
                     <div x-data="{ open: false }" class="relative">
                         <button @click="open = !open" @click.away="open = false"
-                            class="github-nav-link {{ request()->routeIs('job-orders.*') || request()->routeIs('purchases.*') || request()->routeIs('transactions.*') || request()->routeIs('overhead-por.*') || request()->routeIs('sales.*') || request()->routeIs('sales-returns.*') || request()->routeIs('sales_reports.*') || request()->routeIs('penggajian.*') || request()->routeIs('product-cancellations.*')
+                            class="github-nav-link {{ request()->routeIs('job-orders.*') || request()->routeIs('purchases.*') || request()->routeIs('transactions.*') || request()->routeIs('biaya-overhead.*') || request()->routeIs('sales.*') || request()->routeIs('sales-returns.*') || request()->routeIs('sales_reports.*') || request()->routeIs('penggajian.*') || request()->routeIs('product-cancellations.*')
                                 ? 'active' : '' }}">
                             <span>Transaksi</span>
                             <svg class="ms-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -182,14 +182,14 @@
             <a href="{{ route('employees.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('employees.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Karyawan</a>
             <a href="{{ route('aset.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('aset.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Aset</a>
             {{-- <a href="{{ route('customers.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('customers.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Pelanggan</a> --}}
-            <a href="{{ route('biaya-overhead.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('biaya-overhead.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Beban Overhead</a>
+            <a href="{{ route('overhead-por.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('overhead-por.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Overhead Perbulan</a>
 
             <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4">Transaksi</div>
+            <a href="{{ route('biaya-overhead.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('biaya-overhead.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Beban dan Pengeluaran Lainnya</a>
             <a href="{{ route('job-orders.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('job-orders.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Pemesanan</a>
             <a href="{{ route('purchases.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('purchases.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Pembelian</a>
             <a href="{{ route('transactions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('transactions.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Transaksi Umum</a>
             <a href="{{ route('hutang.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('hutang.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Hutang</a>
-            <a href="{{ route('overhead-por.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('overhead-por.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Overhead Perbulan</a>
             <a href="{{ route('sales.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('sales.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Penjualan</a>
             <a href="{{ route('sales-returns.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('sales-returns.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Retur Penjualan</a>
             <a href="{{ route('product-cancellations.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('product-cancellations.*') ? 'bg-gray-100 text-gray-900 font-medium' : '' }}">Pengurangan Produk</a>

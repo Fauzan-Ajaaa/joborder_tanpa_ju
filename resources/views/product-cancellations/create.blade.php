@@ -99,7 +99,6 @@
                         <span class="text-red-900 font-semibold">Total Nilai Kerugian:</span>
                         <span id="preview_total" class="text-xl font-bold text-red-600">Rp 0</span>
                     </div>
-                    <p class="text-xs text-red-700 mt-1">Nilai ini akan dijurnal sebagai "Kerugian Produk Cacat"</p>
                 </div>
             </div>
 

@@ -25,9 +25,10 @@ class SalesTransactionController extends Controller
         
         $metrics = [
             'total' => SalesTransaction::count(),
-            'cash' => SalesTransaction::where('payment_status', 'cash')->count(),
-            'transfer' => SalesTransaction::where('payment_status', 'transfer')->count(),
-            'ewallet' => SalesTransaction::where('payment_status', 'ewallet')->count(),
+            'cash' => SalesTransaction::where('payment_method', 'cash')->count(),
+            'transfer' => SalesTransaction::where('payment_method', 'transfer')->count(),
+            'ewallet' => SalesTransaction::where('payment_method', 'ewallet')->count(),
+            'cod' => SalesTransaction::where('payment_method', 'cod')->count(),
         ];
         
         return view('sales.index', compact('sales', 'metrics'));
@@ -115,18 +116,33 @@ class SalesTransactionController extends Controller
             'employee_id' => 'nullable|exists:employees,id',
             'employee_name' => 'nullable|string|max:255',
             'customer_address' => 'nullable|string',
+            'customer_phone' => 'nullable|string|max:20',
+            'delivery_notes' => 'nullable|string',
             // fob_type tidak lagi dibatasi ke shipping_point/destination supaya bisa pakai label bebas seperti Dine In / Take Away
             'fob_type' => 'nullable|string|max:50',
             'fob_cost' => 'nullable|numeric|min:0',
             'discount_rate' => 'nullable|numeric|min:0|max:100',
             'ppn_rate' => 'required|numeric|min:0|max:100',
             'notes' => 'nullable|string',
-            'payment_status' => 'nullable|in:cash,transfer,ewallet',
+            'payment_method' => 'required|in:cash,transfer,ewallet,cod',
+            'payment_proof' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|numeric|min:0',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
+
+        // Conditional validation for delivery
+        if ($validated['fob_type'] === 'destination') {
+            // Payment proof wajib untuk delivery dengan Transfer/E-Wallet
+            if (in_array($validated['payment_method'], ['transfer', 'ewallet'])) {
+                $request->validate([
+                    'payment_proof' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+                ], [
+                    'payment_proof.required' => 'Bukti pembayaran wajib diupload untuk metode pengiriman dengan ' . ucfirst($validated['payment_method']),
+                ]);
+            }
+        }
 
         // Validasi credit limit customer
         if (!empty($validated['job_order_customer_id'])) {
@@ -216,10 +232,16 @@ class SalesTransactionController extends Controller
             $transactionDate = Carbon::parse($validated['transaction_date'])
                 ->setTimeFrom(Carbon::now());
 
-            // Determine approval status based on payment method
-            $approvalStatus = 'approved'; // Default for cash
-            if (in_array($validated['payment_status'], ['transfer', 'ewallet'])) {
-                $approvalStatus = 'pending'; // Pending sampai ada bukti pembayaran
+            // Determine approval status - langsung approved untuk semua metode
+            // karena transaksi dibuat langsung oleh admin yang sudah verifikasi pembayaran
+            $approvalStatus = 'approved';
+
+            // Handle payment proof upload
+            $paymentProofPath = null;
+            if ($request->hasFile('payment_proof')) {
+                $file = $request->file('payment_proof');
+                $filename = 'payment_proof_' . time() . '_' . $file->getClientOriginalName();
+                $paymentProofPath = $file->storeAs('payment_proofs', $filename, 'public');
             }
 
             // Buat record transaksi penjualan UTAMA (tanpa item dulu)
@@ -231,13 +253,15 @@ class SalesTransactionController extends Controller
                 'customer_name' => $customerData['customer_name'] ?? null,
                 'employee' => $employeeName ?? null,
                 'customer_address' => $customerData['customer_address'] ?? null,
+                'customer_phone' => $validated['customer_phone'] ?? $customerData['customer_phone'] ?? null,
+                'delivery_notes' => $validated['delivery_notes'] ?? null,
                 'fob_type' => $validated['fob_type'] ?? null,
                 'fob_cost' => $fobCost,
                 'discount_rate' => $validated['discount_rate'] ?? 0,
                 'ppn_rate' => $validated['ppn_rate'],
                 'notes' => $validated['notes'] ?? null,
-                'payment_status' => $validated['payment_status'] ?? 'cash',
-                'payment_proof' => null, // Akan diupload setelah transaksi dibuat
+                'payment_method' => $validated['payment_method'],
+                'payment_proof' => $paymentProofPath,
                 'approval_status' => $approvalStatus,
                 'status' => 'pending',
             ]);

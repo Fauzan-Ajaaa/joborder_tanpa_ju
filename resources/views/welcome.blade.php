@@ -207,8 +207,8 @@
     <div class="main">
         <div class="card">
             <div class="badge">✦ Selamat Datang ✦</div>
-            <h1>Manufactur Application</h1>
-            <p class="subtitle">Sistem Informasi Manufaktur Job Order Costing</p>
+            <h1>MAFF-APP</h1>
+            <p class="subtitle">Manufaktur - Sistem Job Order Costing</p>
             <p class="dev-by-card">
                 Developed by:<br>
                 Dr. Nelsi Wisna, S.E., M.Si. <br>
@@ -217,7 +217,7 @@
             </p>
             <div class="divider"></div>
             <p>
-                Manufactur Application hadir sebagai solusi digital untuk membantu pelaku usaha dalam mengelola proses produksi secara terstruktur dan efisien.
+                MAF-APP hadir sebagai solusi digital untuk membantu pelaku usaha dalam mengelola proses produksi secara terstruktur dan efisien.
             </p>
             <a href="{{ route('login') }}" class="btn">Login →</a>
         </div>

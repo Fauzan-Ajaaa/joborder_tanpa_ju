@@ -164,17 +164,24 @@ class ChartOfAccount extends Model
 
         // 4. Jika tidak ada posting sama sekali, gunakan Master COA + Transaksi Sistem
         $openingBalance = (float)($this->opening_balance ?? 0);
-        $transactionBalance = JournalEntryItem::where('chart_of_account_id', $this->id)
+        
+        // Hitung mutasi transaksi sebelum periode
+        $totals = JournalEntryItem::where('chart_of_account_id', $this->id)
             ->whereHas('journalEntry', fn($q) => $q
                 ->where('status', 'posted')
                 ->where('transaction_date', '<', $periodDate))
-            ->selectRaw('COALESCE(SUM(debit), 0) - COALESCE(SUM(credit), 0) AS saldo')
-            ->value('saldo') ?? 0;
+            ->selectRaw('COALESCE(SUM(debit), 0) as total_debit, COALESCE(SUM(credit), 0) as total_credit')
+            ->first();
+        
+        $totalDebit = (float)($totals->total_debit ?? 0);
+        $totalCredit = (float)($totals->total_credit ?? 0);
 
         if ($this->normal_balance_position === 'debit') {
-            return (float)($openingBalance + $transactionBalance);
+            // Akun Debit (1, 5, 6, 7, 8): Debit menambah, Kredit mengurangi
+            return (float)($openingBalance + $totalDebit - $totalCredit);
         } else {
-            return (float)($openingBalance - $transactionBalance);
+            // Akun Kredit (2, 3, 4): Kredit menambah, Debit mengurangi
+            return (float)($openingBalance + $totalCredit - $totalDebit);
         }
     }
 

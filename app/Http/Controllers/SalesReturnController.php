@@ -30,6 +30,12 @@ class SalesReturnController extends Controller
 
     public function create(SalesTransaction $sale)
     {
+        // Validasi: Hanya penjualan dengan metode "Dine In" yang bisa diretur
+        if ($sale->fob_type !== 'dine_in') {
+            return redirect()->route('sales.show', $sale)
+                ->with('error', 'Retur penjualan hanya tersedia untuk transaksi dengan metode layanan "Dine In". Take Away dan Diantar tidak dapat diretur setelah produk diserahkan.');
+        }
+
         if ($sale->salesReturns()->exists()) {
             return redirect()->route('sales.show', $sale)
                 ->with('error', 'Transaksi ini sudah pernah melakukan retur penjualan.');
@@ -41,6 +47,12 @@ class SalesReturnController extends Controller
 
     public function store(Request $request, SalesTransaction $sale, JournalService $journalService)
     {
+        // Validasi: Hanya penjualan dengan metode "Dine In" yang bisa diretur
+        if ($sale->fob_type !== 'dine_in') {
+            return redirect()->route('sales.show', $sale)
+                ->with('error', 'Retur penjualan hanya tersedia untuk transaksi dengan metode layanan "Dine In". Take Away dan Diantar tidak dapat diretur setelah produk diserahkan.');
+        }
+
         if ($sale->salesReturns()->exists()) {
             return redirect()->route('sales.show', $sale)
                 ->with('error', 'Transaksi ini sudah pernah melakukan retur penjualan.');
@@ -51,7 +63,7 @@ class SalesReturnController extends Controller
             'items' => 'required|array|min:1',
             'items.*.sales_item_id' => 'nullable|exists:sales_items,id',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:0',
+            'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 

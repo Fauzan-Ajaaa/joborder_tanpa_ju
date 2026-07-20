@@ -66,6 +66,22 @@ class JobOrderController extends Controller
 
         $data = $request->validate($rules);
 
+        // Validasi stok produk sebelum membuat job order
+        foreach ($data['products'] as $index => $productData) {
+            $product = Product::findOrFail($productData['product_id']);
+            $requestedQty = (float) $productData['quantity'];
+            $availableStock = (float) ($product->available_stock ?? 0);
+            
+            if ($requestedQty > $availableStock) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors([
+                        "products.{$index}.quantity" => "Quantity untuk produk '{$product->name}' melebihi stok tersedia. Stok tersedia: {$availableStock}, diminta: {$requestedQty}"
+                    ])
+                    ->with('error', "Tidak dapat membuat pesanan! Quantity produk '{$product->name}' melebihi stok tersedia.");
+            }
+        }
+
         DB::transaction(function () use ($data, $request) {
             // Cari customer yang sudah ada berdasarkan nama + phone, atau buat baru
             $phone = $data['new_customer_phone'] ?? null;

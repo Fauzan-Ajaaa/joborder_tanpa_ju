@@ -56,10 +56,16 @@ class LedgerController extends Controller
                 ->orderBy('journal_entries.id')
                 ->get();
 
-            // Hitung running balance
+            // Hitung running balance berdasarkan posisi normal balance
             $runningBalance = $saldoAwal;
             foreach ($journalItems as $item) {
-                $runningBalance += $item->debit - $item->credit;
+                if ($selectedAccount->normal_balance_position === 'debit') {
+                    // Untuk akun debit (1, 5, 6, 7, 8): Debit menambah, Kredit mengurangi
+                    $runningBalance += $item->debit - $item->credit;
+                } else {
+                    // Untuk akun kredit (2, 3, 4): Kredit menambah, Debit mengurangi
+                    $runningBalance += $item->credit - $item->debit;
+                }
                 $item->running_balance = $runningBalance;
             }
         }

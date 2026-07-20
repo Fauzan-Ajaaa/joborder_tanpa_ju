@@ -63,7 +63,7 @@
                 </td>
                 <td class="px-5 py-4 text-right whitespace-nowrap text-gray-700 dark:text-gray-200">{{ number_format((float)$si->quantity, 0, ',', '.') }}</td>
                 <td class="px-5 py-4">
-                  <input type="number" step="1" min="0" max="{{ (int)$si->quantity }}" name="items[{{ $i }}][quantity]" value="0" class="block w-full text-right rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-indigo-500" />
+                  <input type="number" step="1" min="1" max="{{ (int)$si->quantity }}" name="items[{{ $i }}][quantity]" value="0" required class="block w-full text-right rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:ring-indigo-500" />
                 </td>
                 <td class="px-5 py-4">
                   <div class="flex items-stretch">

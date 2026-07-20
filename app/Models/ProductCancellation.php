@@ -89,7 +89,10 @@ class ProductCancellation extends Model
     public static function generateCancellationNumber(): string
     {
         $prefix = 'CANCEL-' . date('Ymd');
+        $companyId = auth()->user()?->company_id ?? 1;
+        
         $maxNumber = static::where('cancellation_number', 'like', $prefix . '%')
+            ->where('company_id', $companyId)
             ->lockForUpdate()
             ->max('cancellation_number');
         
@@ -128,24 +131,25 @@ class ProductCancellation extends Model
         $btklPerUnit = $totalDurationHours * $btklRatePerHour;
         
         $bopRatePerHour = (float)($bom->bop_rate_per_hour ?? 0);
-        $bopPerUnit = $totalDurationHours * $bopRatePerHour;
+        $bopPerUnit = floor($totalDurationHours * $bopRatePerHour);
 
         // Kalikan dengan quantity yang dibatalkan
         $quantity = (float)$this->quantity_cancelled;
         
         $this->bbb_cost = round($bbbPerUnit * $quantity, 2);
-        $this->btkl_cost = round($btklPerUnit * $quantity, 2);
-        $this->bop_cost = round($bopPerUnit * $quantity, 2);
+        $this->btkl_cost = floor($btklPerUnit * $quantity);
+        $this->bop_cost = floor($bopPerUnit * $quantity);
         $this->total_cost = round($this->bbb_cost + $this->btkl_cost + $this->bop_cost, 2);
     }
 
     /**
-     * Create journal entry for product cancellation
+     * Create journal entries for product cancellation
+     * Creates separate journals for BBB, BTKL, and BOP (matching job order finish structure)
      */
-    public function createJournalEntry(): void
+    public function createJournalEntry(): array
     {
         $journalService = app(\App\Services\JournalService::class);
-        $journalService->createJournalFromProductCancellation($this);
+        return $journalService->createJournalFromProductCancellation($this);
     }
 
     /**

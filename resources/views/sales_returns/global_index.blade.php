@@ -9,12 +9,6 @@
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Daftar Retur Penjualan</h1>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Semua retur penjualan dari semua transaksi</p>
     </div>
-    <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gray-600 text-white hover:bg-gray-700">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
-      </svg>
-      Kembali ke Dashboard
-    </a>
   </div>
 
   <!-- Summary Cards -->
@@ -84,13 +78,9 @@
               <div class="text-sm font-medium text-red-600 dark:text-red-400">Rp {{ number_format($return->grand_total, 0, ',', '.') }}</div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <div class="flex justify-end space-x-2">
-                <a href="{{ route('sales.returns.index', $return->sales_transaction_id) }}" class="text-green-600 hover:text-green-900 dark:text-green-400" title="Retur Lainnya">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </a>
-              </div>
+              <a href="{{ route('sales.returns.show', $return) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300" title="Lihat Detail">
+                Detail
+              </a>
             </td>
           </tr>
           @endforeach

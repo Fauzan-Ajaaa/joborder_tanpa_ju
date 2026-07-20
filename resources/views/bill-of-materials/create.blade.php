@@ -423,6 +423,55 @@ Rp 0
 
 </div>
 
+<!-- ================================================= -->
+<!-- HITUNG MARGIN CUSTOM -->
+<!-- ================================================= -->
+
+<div class="bg-white shadow sm:rounded-lg p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-2">Hitung Margin</h2>
+    <p class="text-xs text-gray-500 mb-4">Berdasarkan Total Biaya Produksi</p>
+    
+    <!-- Custom Margin Input -->
+    <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+        <h3 class="text-sm font-semibold text-green-900 mb-3"> Hitung Margin Custom</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Margin (%)</label>
+                <input type="number" 
+                       id="custom-margin-percent" 
+                       name="profit_margin_percentage"
+                       class="w-full border-gray-300 rounded-md text-sm" 
+                       placeholder="Contoh: 35" 
+                       min="0" 
+                       max="1000"
+                       step="0.1">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Tambahan Margin</label>
+                <input type="text" 
+                       id="custom-margin-amount" 
+                       class="w-full bg-gray-100 border-gray-200 rounded-md text-sm font-semibold text-green-700" 
+                       readonly 
+                       value="Rp 0">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Harga Jual</label>
+                <input type="text" 
+                       id="custom-recommended-price" 
+                       class="w-full bg-green-100 border-green-300 rounded-md text-sm font-bold text-green-900" 
+                       readonly 
+                       value="Rp 0">
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+        <p class="text-xs text-yellow-800">
+            <span class="font-semibold"> Catatan:</span> Rekomendasi ini hanya sebagai panduan. Pertimbangkan juga harga pasar, kompetitor, dan strategi bisnis Anda. Anda dapat mengisi harga jual manual di atas.
+        </p>
+    </div>
+</div>
+
 
 
 <button type="submit"
@@ -677,7 +726,37 @@ function updateGrandTotal() {
     const bop  = parseFloat(document.getElementById('total_bop_cost').value)  || 0;
     const grandTotal = material + btkl + bop;
     document.getElementById('grand-total').textContent = 'Rp ' + Math.round(grandTotal).toLocaleString('id-ID');
+    
+    // Update custom margin calculation
+    updateCustomMargin(grandTotal);
 }
+
+// Calculate custom margin
+function updateCustomMargin(totalCost = null) {
+    // If totalCost not provided, get it from grand total
+    if (totalCost === null) {
+        const grandTotalText = document.getElementById('grand-total').textContent;
+        totalCost = parseDisplay(grandTotalText);
+    }
+    
+    const customPercent = parseFloat(document.getElementById('custom-margin-percent').value) || 0;
+    
+    if (customPercent > 0 && totalCost > 0) {
+        const marginAmount = totalCost * (customPercent / 100);
+        const recommendedPrice = totalCost + marginAmount;
+        
+        document.getElementById('custom-margin-amount').value = 'Rp ' + Math.round(marginAmount).toLocaleString('id-ID');
+        document.getElementById('custom-recommended-price').value = 'Rp ' + Math.round(recommendedPrice).toLocaleString('id-ID');
+    } else {
+        document.getElementById('custom-margin-amount').value = 'Rp 0';
+        document.getElementById('custom-recommended-price').value = 'Rp 0';
+    }
+}
+
+// Listen to custom margin input
+document.getElementById('custom-margin-percent').addEventListener('input', function() {
+    updateCustomMargin();
+});
 
 // Attach listeners
 function attachItemListeners() {

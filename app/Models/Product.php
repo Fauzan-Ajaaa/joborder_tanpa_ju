@@ -251,7 +251,7 @@ class Product extends Model
                 }
             }
 
-            $possible = $quantityNeeded > 0 ? (int) floor($stockInBomUnit / $quantityNeeded) : 0;
+            $possible = $quantityNeeded > 0 ? (int) round($stockInBomUnit / $quantityNeeded) : 0;
             $maxProducible = min($maxProducible, $possible);
         }
 

@@ -55,7 +55,7 @@
     <!-- Form Section -->
     @if(isset($selectedJobOrder))
     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <form action="{{ route('sales.store') }}" method="POST" class="p-6 space-y-6">
+        <form action="{{ route('sales.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-6">
             @csrf
             
             <!-- Hidden input untuk job order data -->
@@ -126,16 +126,44 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Metode Pembayaran</label>
-                        <select name="payment_status" id="payment_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="cash" {{ old('payment_status','cash')=='cash'?'selected':'' }}>Tunai</option>
-                            <option value="transfer" {{ old('payment_status')=='transfer'?'selected':'' }}>Transfer Bank</option>
-                            <option value="ewallet" {{ old('payment_status')=='ewallet'?'selected':'' }}>E-Wallet</option>
+                        <select name="payment_method" id="payment_method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" onchange="togglePaymentProof()">
+                            <option value="cash" {{ old('payment_method','cash')=='cash'?'selected':'' }}>Tunai</option>
+                            <option value="transfer" {{ old('payment_method')=='transfer'?'selected':'' }}>Transfer Bank</option>
+                            <option value="ewallet" {{ old('payment_method')=='ewallet'?'selected':'' }}>E-Wallet</option>
+                            <option value="cod" {{ old('payment_method')=='cod'?'selected':'' }}>COD (Cash on Delivery)</option>
                         </select>
-                        @error('payment_status')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        @error('payment_method')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                     </div>
                 </div>
             </div>
             @endif
+
+            <!-- Upload Bukti Pembayaran (hanya untuk Diantar + Transfer/E-Wallet) -->
+            <div id="payment-proof-section" style="display: none;">
+                <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">
+                        <i class="fas fa-upload text-yellow-600 mr-2"></i>
+                        Bukti Pembayaran
+                    </h3>
+                    <p class="text-sm text-yellow-700 mb-4">
+                        <span class="font-semibold">Upload bukti pembayaran</span> untuk metode Transfer Bank dan E-Wallet.
+                    </p>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Upload Bukti Transfer/E-Wallet <span class="text-red-500" id="proof-required-indicator">*</span>
+                        </label>
+                        <input type="file" name="payment_proof" id="payment_proof" accept="image/*"
+                               class="mt-1 block w-full text-sm text-gray-500
+                                      file:mr-4 file:py-2 file:px-4
+                                      file:rounded-md file:border-0
+                                      file:text-sm file:font-semibold
+                                      file:bg-blue-50 file:text-blue-700
+                                      hover:file:bg-blue-100">
+                        @error('payment_proof')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG, max 2MB</p>
+                    </div>
+                </div>
+            </div>
 
             <!-- Item Penjualan (Auto-fill dari Job Order) -->
             <div class="space-y-4">
@@ -170,8 +198,16 @@
                                             value="{{ (int) $detail->quantity }}" readonly>
                                     </td>
                                     <td class="px-3 py-2">
-                                        <input type="text" class="w-full rounded-md border-gray-300 text-right" value="Rp {{ number_format((int) old('items.'.$index.'.unit_price', $detail->total_price / $detail->quantity), 0, ',', '.') }}" oninput="formatUnitPrice(this); updateCalculations()" id="unit_price_display_{{ $index }}">
+                                        <input type="text" class="w-full rounded-md border-gray-300 text-right" value="Rp {{ number_format((int) old('items.'.$index.'.unit_price', $detail->total_price / $detail->quantity), 0, ',', '.') }}" oninput="formatUnitPrice(this); updateCalculations()" id="unit_price_display_{{ $index }}" required>
                                         <input type="hidden" name="items[{{ $index }}][unit_price]" value="{{ old('items.'.$index.'.unit_price', $detail->total_price / $detail->quantity) }}" id="unit_price_raw_{{ $index }}">
+                                        @php
+                                            // billOfMaterials adalah hasMany, ambil yang aktif atau pertama
+                                            $bom = $detail->product?->billOfMaterials()->where('is_active', true)->first() 
+                                                   ?? $detail->product?->billOfMaterials()->first();
+                                            $margin = $bom?->profit_margin_percentage;
+                                        @endphp
+                                        @if($margin)
+                                        @endif
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="text" readonly class="w-full rounded-md border-gray-300 bg-gray-100 text-right" id="subtotal-{{ $index }}" value="Rp {{ number_format((int) $detail->total_price, 0, ',', '.') }}">
@@ -195,8 +231,21 @@
                                             value="{{ (int) $selectedJobOrder->quantity }}" readonly>
                                     </td>
                                     <td class="px-3 py-2">
-                                        <input type="text" class="w-full rounded-md border-gray-300 text-right" value="Rp {{ number_format((int) old('items.0.unit_price', $selectedJobOrder->product->price ?? 0), 0, ',', '.') }}" oninput="formatUnitPrice(this); updateCalculations()" id="unit_price_display_0">
+                                        <input type="text" class="w-full rounded-md border-gray-300 text-right" value="Rp {{ number_format((int) old('items.0.unit_price', $selectedJobOrder->product->price ?? 0), 0, ',', '.') }}" oninput="formatUnitPrice(this); updateCalculations()" id="unit_price_display_0" required>
                                         <input type="hidden" name="items[0][unit_price]" value="{{ old('items.0.unit_price', $selectedJobOrder->product->price ?? 0) }}" id="unit_price_raw_0">
+                                        @php
+                                            // billOfMaterials adalah hasMany, ambil yang aktif atau pertama
+                                            $bom = $selectedJobOrder->product?->billOfMaterials()->where('is_active', true)->first() 
+                                                   ?? $selectedJobOrder->product?->billOfMaterials()->first();
+                                            $margin = $bom?->profit_margin_percentage;
+                                            $totalCost = $bom ? ($bom->getTotalMaterialCost() + $bom->getTotalLaborCost() + $bom->getTotalOverheadCost()) : 0;
+                                            $recommendedPrice = ($margin && $totalCost > 0) ? $totalCost * (1 + ($margin / 100)) : 0;
+                                        @endphp
+                                        @if($margin && $recommendedPrice > 0)
+                                            <small class="block text-xs text-blue-600 mt-1">
+                                                💡 Margin {{ $margin }}%: Rp {{ number_format($recommendedPrice, 0, ',', '.') }}
+                                            </small>
+                                        @endif
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="text" readonly class="w-full rounded-md border-gray-300 bg-gray-100 text-right" id="subtotal-0" value="Rp {{ number_format((int) (($selectedJobOrder->product->price ?? 0) * $selectedJobOrder->quantity), 0, ',', '.') }}">
@@ -249,7 +298,7 @@
                     @error('ppn_rate')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Opsi Pengiriman</label>
+                    <label class="block text-sm font-medium text-gray-700">Metode Layanan</label>
                     <select name="fob_type" id="fob_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" onchange="toggleFobCost(); updateCalculations()">
                         <option value="shipping_point" {{ old('fob_type','shipping_point')=='shipping_point'?'selected':'' }}>Take Away</option>
                         <option value="dine_in" {{ old('fob_type')=='dine_in'?'selected':'' }}>Dine In</option>
@@ -265,6 +314,62 @@
                 <input type="number" step="0.01" min="0" name="fob_cost" id="fob_cost" value="{{ old('fob_cost', 0) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" onchange="updateCalculations()">
                 @error('fob_cost')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>
+
+            @if(isset($selectedJobOrder) && $selectedJobOrder->total_hpp > 0)
+            @php
+                // Ambil BOM dari produk untuk mendapatkan margin yang sudah diinput
+                $product = null;
+                if($selectedJobOrder->jobOrderDetails->count() > 0) {
+                    $product = $selectedJobOrder->jobOrderDetails->first()->product;
+                } elseif($selectedJobOrder->product) {
+                    $product = $selectedJobOrder->product;
+                }
+                
+                $bom = $product ? ($product->billOfMaterials()->where('is_active', true)->first() ?? $product->billOfMaterials()->first()) : null;
+                $savedMargin = $bom?->profit_margin_percentage;
+                
+                $hpp = $selectedJobOrder->total_hpp ?? 0;
+                $qty = $selectedJobOrder->jobOrderDetails->count() > 0 
+                       ? $selectedJobOrder->jobOrderDetails->sum('quantity') 
+                       : $selectedJobOrder->quantity;
+                $hppPerUnit = $qty > 0 ? $hpp / $qty : 0;
+            @endphp
+            
+            @if($savedMargin && $hppPerUnit > 0)
+            <!-- Rekomendasi Harga Jual Berdasarkan Margin BOM -->
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 shadow sm:rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2"> Rekomendasi Harga Jual</h3>
+                @php
+                    $hargaRekomendasi = $hppPerUnit * (1 + $savedMargin / 100);
+                    $hargaRekomendasi = ceil($hargaRekomendasi / 100) * 100; // Pembulatan ke ratusan terdekat
+                    $keuntungan = $hargaRekomendasi - $hppPerUnit;
+                @endphp
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <div class="text-xs font-medium text-gray-500 uppercase mb-1">HPP per Unit</div>
+                        <div class="text-xl font-bold text-gray-700">Rp {{ number_format($hppPerUnit, 0, ',', '.') }}</div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <div class="text-xs font-medium text-gray-500 uppercase mb-1">Margin dari BOM</div>
+                        <div class="text-xl font-bold text-blue-600">{{ number_format($savedMargin, 1) }}%</div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm border border-green-200 p-4 hover:shadow-md transition-shadow cursor-pointer" onclick="applyRecommendedPrice({{ $hargaRekomendasi }}, 0)">
+                        <div class="text-xs font-medium text-gray-500 uppercase mb-1">Harga Jual Rekomendasi</div>
+                        <div class="text-xl font-bold text-green-600">Rp {{ number_format($hargaRekomendasi, 0, ',', '.') }}</div>
+                        <div class="text-xs text-gray-600 mt-1">Untung: Rp {{ number_format($keuntungan, 0, ',', '.') }}/unit</div>
+                        <div class="text-xs text-green-600 mt-2 font-medium">✓ Klik untuk terapkan</div>
+                    </div>
+                </div>
+                
+                <div class="p-3 bg-green-100 border border-green-200 rounded-md">
+                    <p class="text-xs text-green-800">
+                        <strong> Info:</strong> Rekomendasi harga ini dihitung berdasarkan margin <strong>{{ number_format($savedMargin, 1) }}%</strong> yang sudah disimpan di BOM produk. Harga dibulatkan ke ratusan terdekat. Klik pada kartu hijau untuk otomatis mengisi harga jual.
+                    </p>
+                </div>
+            </div>
+            @endif
+            @endif
 
             <!-- Ringkasan Biaya -->
             <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -373,11 +478,49 @@ function toggleFobCost() {
     
     if (fobType.value === 'destination') {
         fobCostContainer.style.display = 'block';
-        console.log('Showing container');
+        console.log('Showing delivery containers');
+        // Trigger payment proof check
+        togglePaymentProof();
     } else {
         fobCostContainer.style.display = 'none';
         document.getElementById('fob_cost').value = 0;
-        console.log('Hiding container');
+        console.log('Hiding delivery containers');
+        // Hide payment proof when not delivery
+        const paymentProofSection = document.getElementById('payment-proof-section');
+        const paymentProofInput = document.getElementById('payment_proof');
+        if (paymentProofSection) paymentProofSection.style.display = 'none';
+        if (paymentProofInput) paymentProofInput.required = false;
+    }
+}
+
+function togglePaymentProof() {
+    const fobType = document.getElementById('fob_type');
+    const paymentMethod = document.getElementById('payment_method');
+    const paymentProofSection = document.getElementById('payment-proof-section');
+    const paymentProofInput = document.getElementById('payment_proof');
+    const proofRequiredIndicator = document.getElementById('proof-required-indicator');
+    
+    if (!fobType || !paymentMethod || !paymentProofSection) {
+        console.log('Payment elements not found!');
+        return;
+    }
+    
+    console.log('fob_type:', fobType.value, 'payment method:', paymentMethod.value);
+    
+    // Show payment proof ONLY if: Diantar (destination) AND (Transfer OR E-Wallet)
+    const isDelivery = fobType.value === 'destination';
+    const requiresProof = paymentMethod.value === 'transfer' || paymentMethod.value === 'ewallet';
+    
+    if (isDelivery && requiresProof) {
+        paymentProofSection.style.display = 'block';
+        if (paymentProofInput) paymentProofInput.required = true;
+        if (proofRequiredIndicator) proofRequiredIndicator.style.display = 'inline';
+        console.log('Payment proof required (Delivery + Transfer/E-Wallet)');
+    } else {
+        paymentProofSection.style.display = 'none';
+        if (paymentProofInput) paymentProofInput.required = false;
+        if (proofRequiredIndicator) proofRequiredIndicator.style.display = 'none';
+        console.log('Payment proof not required');
     }
 }
 
@@ -471,14 +614,31 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fobTypeSelect) {
         fobTypeSelect.addEventListener('change', function() {
             const fobCostContainer = document.getElementById('fob-cost-container');
+            
             if (fobCostContainer) {
                 if (this.value === 'destination') {
                     fobCostContainer.style.display = 'block';
                 } else {
                     fobCostContainer.style.display = 'none';
                     document.getElementById('fob_cost').value = 0;
+                    
+                    // Hide payment proof when not delivery
+                    const paymentProofSection = document.getElementById('payment-proof-section');
+                    const paymentProofInput = document.getElementById('payment_proof');
+                    if (paymentProofSection) paymentProofSection.style.display = 'none';
+                    if (paymentProofInput) paymentProofInput.required = false;
                 }
             }
+            // Trigger payment proof check
+            togglePaymentProof();
+        });
+    }
+    
+    // Setup payment method toggle
+    const paymentMethodSelect = document.getElementById('payment_method');
+    if (paymentMethodSelect) {
+        paymentMethodSelect.addEventListener('change', function() {
+            togglePaymentProof();
         });
     }
     
@@ -492,6 +652,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updateCalculations();
 });
+
+// Apply recommended price to unit price input
+function applyRecommendedPrice(price, itemIndex = 0) {
+    const displayInput = document.getElementById(`unit_price_display_${itemIndex}`);
+    const rawInput = document.getElementById(`unit_price_raw_${itemIndex}`);
+    
+    if (displayInput && rawInput) {
+        const roundedPrice = Math.round(price);
+        displayInput.value = 'Rp ' + roundedPrice.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        rawInput.value = roundedPrice;
+        updateCalculations();
+        
+        // Show feedback
+        displayInput.classList.add('ring-2', 'ring-green-500');
+        setTimeout(() => {
+            displayInput.classList.remove('ring-2', 'ring-green-500');
+        }, 1000);
+    }
+}
 </script>
 @endsection
 
